@@ -289,7 +289,7 @@ export default function SettingsPage() {
               <div>
                 <span>Biometric unlock</span>
                 <p className="text-xs text-muted-foreground">
-                  Your device doesn't support biometric unlock
+                  Biometric unlock isn't supported in this browser. Try using Chrome.
                 </p>
               </div>
             </div>
