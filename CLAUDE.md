@@ -8,14 +8,17 @@ Local-first, encrypted cannabis consumption tracking PWA. All data stays on-devi
 
 ## Commands
 
+Uses [Vite+](https://viteplus.dev/) as the unified toolchain (`vp` CLI).
+
 ```bash
-npm run dev          # Dev server at localhost:5173
-npm run build        # Production build → dist/
-npm run preview      # Preview production build
-npm test             # Run all Vitest unit + integration tests
-npx vitest run tests/unit/crypto.test.ts  # Run single test file
-npx oxlint src       # Lint
-npx prettier --write "src/**/*.{ts,tsx,css}"  # Format
+vp dev               # Dev server at localhost:5173
+vp build             # Production build → dist/
+vp preview           # Preview production build
+vp check             # Lint (oxlint) + format (oxfmt) + type check in one pass
+vp check --fix       # Auto-fix lint and formatting issues
+vp test run          # Run all Vitest unit + integration tests
+vp test run tests/unit/crypto.test.ts  # Run single test file
+npm run deploy       # Build + deploy to Cloudflare Pages
 npx playwright test  # E2E tests (requires running dev server)
 ```
 
@@ -42,21 +45,22 @@ Each read: fetch → AES-GCM decrypt → JSON.parse → Zod validate.
 ### State management
 
 React Context only. Two root providers in `App.tsx`:
+
 1. `AuthContext` — vault state machine (`none` → `locked` → `unlocked`), holds `masterKey: CryptoKey | null` in a ref. Auto-locks on `visibilitychange`.
 2. `DataContext` — encrypted CRUD; loads/clears data on vault state changes.
 
 ### Key files
 
-| File | Purpose |
-|------|---------|
-| `src/lib/crypto.ts` | All WebCrypto operations (PBKDF2, AES-GCM, wrap/unwrap) |
-| `src/lib/auth.ts` | WebAuthn PRF registration and authentication |
-| `src/lib/db.ts` | IndexedDB via `idb` — vault meta + encrypted CRUD |
-| `src/lib/schemas.ts` | Zod schemas for all data types (validate on both write and read) |
-| `src/types/index.ts` | TypeScript interfaces |
-| `src/contexts/AuthContext.tsx` | Vault state machine |
-| `src/contexts/DataContext.tsx` | Encrypted data provider with in-memory cache |
-| `src/hooks/useInsights.ts` | Client-side aggregation for charts (memoized) |
+| File                           | Purpose                                                          |
+| ------------------------------ | ---------------------------------------------------------------- |
+| `src/lib/crypto.ts`            | All WebCrypto operations (PBKDF2, AES-GCM, wrap/unwrap)          |
+| `src/lib/auth.ts`              | WebAuthn PRF registration and authentication                     |
+| `src/lib/db.ts`                | IndexedDB via `idb` — vault meta + encrypted CRUD                |
+| `src/lib/schemas.ts`           | Zod schemas for all data types (validate on both write and read) |
+| `src/types/index.ts`           | TypeScript interfaces                                            |
+| `src/contexts/AuthContext.tsx` | Vault state machine                                              |
+| `src/contexts/DataContext.tsx` | Encrypted data provider with in-memory cache                     |
+| `src/hooks/useInsights.ts`     | Client-side aggregation for charts (memoized)                    |
 
 ### Routing
 
@@ -72,13 +76,12 @@ Tailwind v4 CSS-first. Theme tokens defined in `src/index.css` as CSS variables.
 - **Integration** (`tests/integration/`): IndexedDB CRUD with `fake-indexeddb`, auth flow
 - **E2E** (`tests/e2e/`): Playwright on mobile viewports (not yet written — run `npx playwright test` after implementing)
 
-Run `npx vitest run` for unit + integration tests (37 tests, ~3s).
+Run `vp test run` for unit + integration tests (37 tests, ~1s).
 
 ## Deployment
 
 ```bash
-npm run build
-npx wrangler pages deploy dist
+npm run deploy       # vp check && vp build && wrangler pages deploy
 ```
 
-Or connect GitHub repo to Cloudflare Pages for auto-deploy on push. `wrangler.toml` and `public/_headers` are already configured.
+CI/CD via GitHub Actions: pushes to `main` run checks + tests, then auto-deploy to Cloudflare Pages. `wrangler.toml` and `public/_headers` are already configured.

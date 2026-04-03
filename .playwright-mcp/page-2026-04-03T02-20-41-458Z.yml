@@ -1,0 +1,416 @@
+- generic [ref=e4]:
+    - link "Skip to content" [ref=e5] [cursor=pointer]:
+        - /url: '#VPContent'
+    - banner [ref=e7]:
+        - generic [ref=e8]:
+            - link "Vite+" [ref=e9] [cursor=pointer]:
+                - /url: /
+                - img "Vite+" [ref=e10]
+            - navigation "Main Navigation" [ref=e12]:
+                - generic [ref=e13]: Main Navigation
+                - link "Guide" [ref=e14] [cursor=pointer]:
+                    - /url: /guide/
+                    - generic [ref=e15]: Guide
+                - link "Config" [ref=e16] [cursor=pointer]:
+                    - /url: /config/
+                    - generic [ref=e17]: Config
+                - button "Resources" [ref=e19] [cursor=pointer]:
+                    - generic [ref=e21]: Resources
+        - generic [ref=e23]:
+            - button "Search" [ref=e26] [cursor=pointer]:
+                - generic [ref=e28]: Search
+                - generic [ref=e29]:
+                    - generic [ref=e30]: ⌘
+                    - generic [ref=e31]: K
+            - generic [ref=e32]:
+                - switch [ref=e34] [cursor=pointer]
+                - generic [ref=e39]:
+                    - link "github" [ref=e40] [cursor=pointer]:
+                        - /url: https://github.com/voidzero-dev/vite-plus
+                        - img [ref=e41]
+                    - link "x" [ref=e42] [cursor=pointer]:
+                        - /url: https://x.com/voidzerodev
+                        - img [ref=e43]
+                    - link "discord" [ref=e44] [cursor=pointer]:
+                        - /url: https://discord.gg/cC6TEVFKSx
+                        - img [ref=e45]
+                    - link "bluesky" [ref=e46] [cursor=pointer]:
+                        - /url: https://bsky.app/profile/voidzero.dev
+                        - img [ref=e47]
+    - generic [ref=e49]:
+        - complementary [ref=e50]:
+            - navigation "Sidebar Navigation" [ref=e51]:
+                - generic [ref=e52]: Sidebar Navigation
+                - generic [ref=e54]:
+                    - button "Introduction" [ref=e55]:
+                        - heading "Introduction" [level=2] [ref=e57]
+                    - generic [ref=e58]:
+                        - link "Getting Started" [ref=e62] [cursor=pointer]:
+                            - /url: /guide/
+                            - paragraph [ref=e63]: Getting Started
+                        - link "Creating a Project" [ref=e67] [cursor=pointer]:
+                            - /url: /guide/create
+                            - paragraph [ref=e68]: Creating a Project
+                        - link "Migrate to Vite+" [ref=e72] [cursor=pointer]:
+                            - /url: /guide/migrate
+                            - paragraph [ref=e73]: Migrate to Vite+
+                        - link "Installing Dependencies" [ref=e77] [cursor=pointer]:
+                            - /url: /guide/install
+                            - paragraph [ref=e78]: Installing Dependencies
+                        - link "Environment" [ref=e82] [cursor=pointer]:
+                            - /url: /guide/env
+                            - paragraph [ref=e83]: Environment
+                        - link "Why Vite+" [ref=e87] [cursor=pointer]:
+                            - /url: /guide/why
+                            - paragraph [ref=e88]: Why Vite+
+                - generic [ref=e90]:
+                    - button "Develop" [ref=e91]:
+                        - heading "Develop" [level=2] [ref=e93]
+                    - generic [ref=e94]:
+                        - link "Dev" [ref=e98] [cursor=pointer]:
+                            - /url: /guide/dev
+                            - paragraph [ref=e99]: Dev
+                        - generic [ref=e100]:
+                            - link "Check" [ref=e103] [cursor=pointer]:
+                                - /url: /guide/check
+                                - heading "Check" [level=3] [ref=e104]
+                            - generic [ref=e105]:
+                                - link "Lint" [ref=e109] [cursor=pointer]:
+                                    - /url: /guide/lint
+                                    - paragraph [ref=e110]: Lint
+                                - link "Format" [ref=e114] [cursor=pointer]:
+                                    - /url: /guide/fmt
+                                    - paragraph [ref=e115]: Format
+                        - link "Test" [ref=e119] [cursor=pointer]:
+                            - /url: /guide/test
+                            - paragraph [ref=e120]: Test
+                - generic [ref=e122]:
+                    - button "Execute" [ref=e123]:
+                        - heading "Execute" [level=2] [ref=e125]
+                    - generic [ref=e126]:
+                        - link "Run" [ref=e130] [cursor=pointer]:
+                            - /url: /guide/run
+                            - paragraph [ref=e131]: Run
+                        - link "Task Caching" [ref=e135] [cursor=pointer]:
+                            - /url: /guide/cache
+                            - paragraph [ref=e136]: Task Caching
+                        - link "Running Binaries" [ref=e140] [cursor=pointer]:
+                            - /url: /guide/vpx
+                            - paragraph [ref=e141]: Running Binaries
+                - generic [ref=e143]:
+                    - button "Build" [ref=e144]:
+                        - heading "Build" [level=2] [ref=e146]
+                    - generic [ref=e147]:
+                        - link "Build" [ref=e151] [cursor=pointer]:
+                            - /url: /guide/build
+                            - paragraph [ref=e152]: Build
+                        - link "Pack" [ref=e156] [cursor=pointer]:
+                            - /url: /guide/pack
+                            - paragraph [ref=e157]: Pack
+                - generic [ref=e159]:
+                    - button "Maintain" [ref=e160]:
+                        - heading "Maintain" [level=2] [ref=e162]
+                    - generic [ref=e163]:
+                        - link "Upgrading Vite+" [ref=e167] [cursor=pointer]:
+                            - /url: /guide/upgrade
+                            - paragraph [ref=e168]: Upgrading Vite+
+                        - link "Removing Vite+" [ref=e172] [cursor=pointer]:
+                            - /url: /guide/implode
+                            - paragraph [ref=e173]: Removing Vite+
+                - generic [ref=e175]:
+                    - button "Workflow" [ref=e176]:
+                        - heading "Workflow" [level=2] [ref=e178]
+                    - generic [ref=e179]:
+                        - link "IDE Integration" [ref=e183] [cursor=pointer]:
+                            - /url: /guide/ide-integration
+                            - paragraph [ref=e184]: IDE Integration
+                        - link "CI" [ref=e188] [cursor=pointer]:
+                            - /url: /guide/ci
+                            - paragraph [ref=e189]: CI
+                        - link "Commit Hooks" [ref=e193] [cursor=pointer]:
+                            - /url: /guide/commit-hooks
+                            - paragraph [ref=e194]: Commit Hooks
+                        - link "Troubleshooting" [ref=e198] [cursor=pointer]:
+                            - /url: /guide/troubleshooting
+                            - paragraph [ref=e199]: Troubleshooting
+        - generic [ref=e209]:
+            - main [ref=e210]:
+                - generic [ref=e212]:
+                    - heading "Migrate to Vite+ Permalink to “Migrate to Vite+”" [level=1] [ref=e213]:
+                        - text: Migrate to Vite+
+                        - link "Permalink to “Migrate to Vite+”" [ref=e214] [cursor=pointer]:
+                            - /url: '#migrate-to-vite'
+                            - text: '#'
+                    - paragraph [ref=e215]:
+                        - code [ref=e216]: vp migrate
+                        - text: helps move existing projects onto Vite+.
+                    - heading "Overview Permalink to “Overview”" [level=2] [ref=e217]:
+                        - text: Overview
+                        - link "Permalink to “Overview”" [ref=e218] [cursor=pointer]:
+                            - /url: '#overview'
+                            - text: '#'
+                    - paragraph [ref=e219]: This command is the starting point for consolidating separate Vite, Vitest, Oxlint, Oxfmt, ESLint, and Prettier setups into Vite+.
+                    - paragraph [ref=e220]: Use it when you want to take an existing project and move it onto the Vite+ defaults instead of wiring each tool by hand.
+                    - heading "Usage Permalink to “Usage”" [level=2] [ref=e221]:
+                        - text: Usage
+                        - link "Permalink to “Usage”" [ref=e222] [cursor=pointer]:
+                            - /url: '#usage'
+                            - text: '#'
+                    - generic [ref=e223]:
+                        - button "Copy Code" [ref=e224] [cursor=pointer]
+                        - generic [ref=e225]: bash
+                        - code [ref=e227]:
+                            - generic [ref=e228]: vp migrate
+                            - generic [ref=e229]: vp migrate <path>
+                            - generic [ref=e230]: vp migrate --no-interactive
+                    - heading "Target Path Permalink to “Target Path”" [level=2] [ref=e231]:
+                        - text: Target Path
+                        - link "Permalink to “Target Path”" [ref=e232] [cursor=pointer]:
+                            - /url: '#target-path'
+                            - text: '#'
+                    - paragraph [ref=e233]:
+                        - text: The positional
+                        - code [ref=e234]: PATH
+                        - text: argument is optional.
+                    - list [ref=e235]:
+                        - listitem [ref=e236]:
+                            - text: If omitted,
+                            - code [ref=e237]: vp migrate
+                            - text: migrates the current directory
+                        - listitem [ref=e238]: If provided, it migrates that target directory instead
+                    - generic [ref=e239]:
+                        - button "Copy Code" [ref=e240] [cursor=pointer]
+                        - generic [ref=e241]: bash
+                        - code [ref=e243]:
+                            - generic [ref=e244]: vp migrate
+                            - generic [ref=e245]: vp migrate my-app
+                    - heading "Options Permalink to “Options”" [level=2] [ref=e246]:
+                        - text: Options
+                        - link "Permalink to “Options”" [ref=e247] [cursor=pointer]:
+                            - /url: '#options'
+                            - text: '#'
+                    - list [ref=e248]:
+                        - listitem [ref=e249]:
+                            - code [ref=e250]: '--agent <name>'
+                            - text: writes agent instructions into the project
+                        - listitem [ref=e251]:
+                            - code [ref=e252]: '--no-agent'
+                            - text: skips agent instruction setup
+                        - listitem [ref=e253]:
+                            - code [ref=e254]: '--editor <name>'
+                            - text: writes editor config files into the project
+                        - listitem [ref=e255]:
+                            - code [ref=e256]: '--no-editor'
+                            - text: skips editor config setup
+                        - listitem [ref=e257]:
+                            - code [ref=e258]: '--hooks'
+                            - text: sets up pre-commit hooks
+                        - listitem [ref=e259]:
+                            - code [ref=e260]: '--no-hooks'
+                            - text: skips hook setup
+                        - listitem [ref=e261]:
+                            - code [ref=e262]: '--no-interactive'
+                            - text: runs the migration without prompts
+                    - heading "Migration Flow Permalink to “Migration Flow”" [level=2] [ref=e263]:
+                        - text: Migration Flow
+                        - link "Permalink to “Migration Flow”" [ref=e264] [cursor=pointer]:
+                            - /url: '#migration-flow'
+                            - text: '#'
+                    - paragraph [ref=e265]:
+                        - text: The
+                        - code [ref=e266]: migrate
+                        - text: 'command is designed to move existing projects onto Vite+ quickly. Here is what the command does:'
+                    - list [ref=e267]:
+                        - listitem [ref=e268]: Updates project dependencies
+                        - listitem [ref=e269]: Rewrites imports where needed
+                        - listitem [ref=e270]:
+                            - text: Merges tool-specific config into
+                            - code [ref=e271]: vite.config.ts
+                        - listitem [ref=e272]: Updates scripts to the Vite+ command surface
+                        - listitem [ref=e273]: Can set up commit hooks
+                        - listitem [ref=e274]: Can write agent and editor configuration files
+                    - paragraph [ref=e275]:
+                        - text: Most projects will require further manual adjustments after running
+                        - code [ref=e276]: vp migrate
+                        - text: .
+                    - heading "Recommended Workflow Permalink to “Recommended Workflow”" [level=2] [ref=e277]:
+                        - text: Recommended Workflow
+                        - link "Permalink to “Recommended Workflow”" [ref=e278] [cursor=pointer]:
+                            - /url: '#recommended-workflow'
+                            - text: '#'
+                    - paragraph [ref=e279]: 'Before running the migration:'
+                    - list [ref=e280]:
+                        - listitem [ref=e281]: Upgrade to Vite 8+ and Vitest 4.1+ first
+                        - listitem [ref=e282]: Make sure you understand any existing lint, format, or test setup that should be preserved
+                    - paragraph [ref=e283]: 'After running the migration:'
+                    - list [ref=e284]:
+                        - listitem [ref=e285]:
+                            - text: Run
+                            - code [ref=e286]: vp install
+                        - listitem [ref=e287]:
+                            - text: Run
+                            - code [ref=e288]: vp check
+                        - listitem [ref=e289]:
+                            - text: Run
+                            - code [ref=e290]: vp test
+                        - listitem [ref=e291]:
+                            - text: Run
+                            - code [ref=e292]: vp build
+                    - heading "Migration Prompt Permalink to “Migration Prompt”" [level=2] [ref=e293]:
+                        - text: Migration Prompt
+                        - link "Permalink to “Migration Prompt”" [ref=e294] [cursor=pointer]:
+                            - /url: '#migration-prompt'
+                            - text: '#'
+                    - paragraph [ref=e295]: 'If you want to hand this work to a coding agent (or the reader is a coding agent!), use this migration prompt:'
+                    - generic [ref=e296]:
+                        - button "Copy Code" [ref=e297] [cursor=pointer]
+                        - generic [ref=e298]: md
+                        - code [ref=e300]:
+                            - generic [ref=e301]: 'Migrate this project to Vite+. Vite+ replaces the current split tooling around runtime management, package management, dev/build/test commands, linting, formatting, and packaging. Run `vp help` to understand Vite+ capabilities and `vp help migrate` before making changes. Use `vp migrate --no-interactive` in the workspace root. Make sure the project is using Vite 8+ and Vitest 4.1+ before migrating.'
+                            - generic [ref=e302]: 'After the migration:'
+                            - generic [ref=e303]: '- Confirm `vite` imports were rewritten to `vite-plus` where needed'
+                            - generic [ref=e304]: '- Confirm `vitest` imports were rewritten to `vite-plus/test` where needed'
+                            - generic [ref=e305]: '- Remove old `vite` and `vitest` dependencies only after those rewrites are confirmed'
+                            - generic [ref=e306]: '- Move remaining tool-specific config into the appropriate blocks in `vite.config.ts`'
+                            - generic [ref=e307]: 'Command mapping to keep in mind:'
+                            - generic [ref=e308]: '- `vp run <script>` is the equivalent of `pnpm run <script>`'
+                            - generic [ref=e309]: '- `vp test` runs the built-in test command, while `vp run test` runs the `test` script from `package.json`'
+                            - generic [ref=e310]: '- `vp install`, `vp add`, and `vp remove` delegate through the package manager declared by `packageManager`'
+                            - generic [ref=e311]: '- `vp dev`, `vp build`, `vp preview`, `vp lint`, `vp fmt`, `vp check`, and `vp pack` replace the corresponding standalone tools'
+                            - generic [ref=e312]: '- Prefer `vp check` for validation loops'
+                            - generic [ref=e313]: 'Finally, verify the migration by running: `vp install`, `vp check`, `vp test`, and `vp build`'
+                            - generic [ref=e314]: Summarize the migration at the end and report any manual follow-up still required.
+                    - heading "Tool-Specific Migrations Permalink to “Tool-Specific Migrations”" [level=2] [ref=e315]:
+                        - text: Tool-Specific Migrations
+                        - link "Permalink to “Tool-Specific Migrations”" [ref=e316] [cursor=pointer]:
+                            - /url: '#tool-specific-migrations'
+                            - text: '#'
+                    - heading "Vitest Permalink to “Vitest”" [level=3] [ref=e317]:
+                        - text: Vitest
+                        - link "Permalink to “Vitest”" [ref=e318] [cursor=pointer]:
+                            - /url: '#vitest'
+                            - text: '#'
+                    - paragraph [ref=e319]:
+                        - text: Vitest is automatically migrated through
+                        - code [ref=e320]: vp migrate
+                        - text: . If you are migrating manually, you have to update all the imports to
+                        - code [ref=e321]: vite-plus/test
+                        - text: 'instead:'
+                    - generic [ref=e322]:
+                        - button "Copy Code" [ref=e323] [cursor=pointer]
+                        - generic [ref=e324]: ts
+                        - code [ref=e326]:
+                            - generic [ref=e327]: // before
+                            - generic [ref=e328]: "import { describe, expect, it, vi } from 'vitest';"
+                            - generic [ref=e329]: "const { page } = await import('@vitest/browser/context');"
+                            - generic [ref=e330]: // after
+                            - generic [ref=e331]: "import { describe, expect, it, vi } from 'vite-plus/test';"
+                            - generic [ref=e332]: "const { page } = await import('vite-plus/test/browser/context');"
+                    - heading "tsdown Permalink to “tsdown”" [level=3] [ref=e333]:
+                        - text: tsdown
+                        - link "Permalink to “tsdown”" [ref=e334] [cursor=pointer]:
+                            - /url: '#tsdown'
+                            - text: '#'
+                    - paragraph [ref=e335]:
+                        - text: If your project uses a
+                        - code [ref=e336]: tsdown.config.ts
+                        - text: ', move its options into the'
+                        - code [ref=e337]: pack
+                        - text: block in
+                        - code [ref=e338]: vite.config.ts
+                        - text: ':'
+                    - generic [ref=e339]:
+                        - button "Copy Code" [ref=e340] [cursor=pointer]
+                        - generic [ref=e341]: ts
+                        - code [ref=e343]:
+                            - generic [ref=e344]: // before — tsdown.config.ts
+                            - generic [ref=e345]: "import { defineConfig } from 'tsdown';"
+                            - generic [ref=e346]: 'export default defineConfig({'
+                            - generic [ref=e347]: "entry: ['src/index.ts'],"
+                            - generic [ref=e348]: 'dts: true,'
+                            - generic [ref=e349]: "format: ['esm', 'cjs'],"
+                            - generic [ref=e350]: '});'
+                            - generic [ref=e351]: // after — vite.config.ts
+                            - generic [ref=e352]: "import { defineConfig } from 'vite-plus';"
+                            - generic [ref=e353]: 'export default defineConfig({'
+                            - generic [ref=e354]: 'pack: {'
+                            - generic [ref=e355]: "entry: ['src/index.ts'],"
+                            - generic [ref=e356]: 'dts: true,'
+                            - generic [ref=e357]: "format: ['esm', 'cjs'],"
+                            - generic [ref=e358]: '},'
+                            - generic [ref=e359]: '});'
+                    - paragraph [ref=e360]:
+                        - text: After merging, delete
+                        - code [ref=e361]: tsdown.config.ts
+                        - text: . See the
+                        - link "Pack guide" [ref=e362] [cursor=pointer]:
+                            - /url: /guide/pack
+                        - text: for the full configuration reference.
+                    - heading "lint-staged Permalink to “lint-staged”" [level=3] [ref=e363]:
+                        - text: lint-staged
+                        - link "Permalink to “lint-staged”" [ref=e364] [cursor=pointer]:
+                            - /url: '#lint-staged'
+                            - text: '#'
+                    - paragraph [ref=e365]:
+                        - text: Vite+ replaces lint-staged with its own
+                        - code [ref=e366]: staged
+                        - text: block in
+                        - code [ref=e367]: vite.config.ts
+                        - text: . Only the
+                        - code [ref=e368]: staged
+                        - text: config format is supported. Standalone
+                        - code [ref=e369]: .lintstagedrc
+                        - text: in non-JSON format and
+                        - code [ref=e370]: lint-staged.config.*
+                        - text: are not migrated automatically.
+                    - paragraph [ref=e371]:
+                        - text: Move your lint-staged rules into the
+                        - code [ref=e372]: staged
+                        - text: 'block:'
+                    - generic [ref=e373]:
+                        - button "Copy Code" [ref=e374] [cursor=pointer]
+                        - generic [ref=e375]: ts
+                        - code [ref=e377]:
+                            - generic [ref=e378]: // vite.config.ts
+                            - generic [ref=e379]: "import { defineConfig } from 'vite-plus';"
+                            - generic [ref=e380]: 'export default defineConfig({'
+                            - generic [ref=e381]: 'staged: {'
+                            - generic [ref=e382]: "'*.{js,ts,tsx,vue,svelte}': 'vp check --fix',"
+                            - generic [ref=e383]: '},'
+                            - generic [ref=e384]: '});'
+                    - paragraph [ref=e385]:
+                        - text: After migrating, remove lint-staged from your dependencies and delete any lint-staged config files. See the
+                        - link "Commit hooks guide" [ref=e386] [cursor=pointer]:
+                            - /url: /guide/commit-hooks
+                        - text: and
+                        - link "Staged config reference" [ref=e387] [cursor=pointer]:
+                            - /url: /config/staged
+                        - text: for details.
+                    - heading "Examples Permalink to “Examples”" [level=2] [ref=e388]:
+                        - text: Examples
+                        - link "Permalink to “Examples”" [ref=e389] [cursor=pointer]:
+                            - /url: '#examples'
+                            - text: '#'
+                    - generic [ref=e390]:
+                        - button "Copy Code" [ref=e391] [cursor=pointer]
+                        - generic [ref=e392]: bash
+                        - code [ref=e394]:
+                            - generic [ref=e395]: '# Migrate the current project'
+                            - generic [ref=e396]: vp migrate
+                            - generic [ref=e397]: '# Migrate a specific directory'
+                            - generic [ref=e398]: vp migrate my-app
+                            - generic [ref=e399]: '# Run without prompts'
+                            - generic [ref=e400]: vp migrate --no-interactive
+                            - generic [ref=e401]: '# Write agent and editor setup during migration'
+                            - generic [ref=e402]: vp migrate --agent claude --editor zed
+            - contentinfo [ref=e403]:
+                - navigation "Pager" [ref=e404]:
+                    - generic [ref=e405]: Pager
+                    - link "Previous page Creating a Project" [ref=e407] [cursor=pointer]:
+                        - /url: /guide/create
+                        - generic [ref=e408]: Previous page
+                        - generic [ref=e409]: Creating a Project
+                    - link "Next page Installing Dependencies" [ref=e411] [cursor=pointer]:
+                        - /url: /guide/install
+                        - generic [ref=e412]: Next page
+                        - generic [ref=e413]: Installing Dependencies
