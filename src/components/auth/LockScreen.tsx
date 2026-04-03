@@ -11,6 +11,9 @@ export function LockScreen() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  const showPassword = authMethod === 'password' || authMethod === 'both'
+  const showBiometric = authMethod === 'biometric' || authMethod === 'both'
+
   const handleUnlock = async () => {
     setLoading(true)
     setError('')
@@ -24,7 +27,13 @@ export function LockScreen() {
     setError('')
     const ok = await unlockWithBiometric()
     setLoading(false)
-    if (!ok) setError('Biometric unlock failed. Try your password.')
+    if (!ok) {
+      setError(
+        showPassword
+          ? 'Biometric unlock failed. Try your password.'
+          : 'Biometric unlock failed. Please try again.'
+      )
+    }
   }
 
   return (
@@ -32,44 +41,58 @@ export function LockScreen() {
       <div className="w-full max-w-sm space-y-6">
         <div className="space-y-1 text-center">
           <h1 className="font-serif text-3xl">Trellis</h1>
-          <p className="text-sm text-muted-foreground">Enter your password to continue</p>
+          <p className="text-sm text-muted-foreground">
+            {showPassword ? 'Enter your password to continue' : 'Use biometric to unlock'}
+          </p>
         </div>
 
         <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Your vault password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleUnlock()}
-              autoFocus
-            />
-          </div>
+          {showPassword && (
+            <div className="space-y-1.5">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Your vault password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleUnlock()}
+                autoFocus
+              />
+            </div>
+          )}
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <Button className="w-full" onClick={handleUnlock} disabled={loading || !password}>
-            {loading ? (
-              <>
-                <Loader2 size={16} className="mr-2 animate-spin" /> Unlocking…
-              </>
-            ) : (
-              'Unlock'
-            )}
-          </Button>
+          {showPassword && (
+            <Button className="w-full" onClick={handleUnlock} disabled={loading || !password}>
+              {loading ? (
+                <>
+                  <Loader2 size={16} className="mr-2 animate-spin" /> Unlocking…
+                </>
+              ) : (
+                'Unlock'
+              )}
+            </Button>
+          )}
 
-          {(authMethod === 'biometric' || authMethod === 'both') && (
+          {showBiometric && (
             <Button
-              variant="outline"
+              variant={showPassword ? 'outline' : 'default'}
               className="w-full"
               onClick={handleBiometric}
               disabled={loading}
             >
-              <Fingerprint size={16} className="mr-2" />
-              Use biometric
+              {loading && !showPassword ? (
+                <>
+                  <Loader2 size={16} className="mr-2 animate-spin" /> Unlocking…
+                </>
+              ) : (
+                <>
+                  <Fingerprint size={16} className="mr-2" />
+                  Use biometric
+                </>
+              )}
             </Button>
           )}
         </div>
