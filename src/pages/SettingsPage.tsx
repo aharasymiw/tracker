@@ -4,6 +4,7 @@ import { useData } from '@/contexts/DataContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
+import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useState } from 'react'
@@ -58,7 +59,16 @@ export default function SettingsPage() {
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           Security
         </p>
-        <div className="space-y-2">
+        <div className="flex justify-between items-center">
+          <Label className="text-sm">Stay logged in</Label>
+          <Switch
+            checked={settings.stayLoggedIn}
+            onCheckedChange={(checked) => saveSettings({ stayLoggedIn: checked })}
+          />
+        </div>
+        <div
+          className={`space-y-2 ${settings.stayLoggedIn ? 'opacity-40 pointer-events-none' : ''}`}
+        >
           <div className="flex justify-between items-center">
             <Label className="text-sm">Auto-lock after {settings.autoLockMinutes} minutes</Label>
           </div>

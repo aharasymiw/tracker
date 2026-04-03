@@ -39,6 +39,7 @@ export const GoalSchema = z.object({
 export const AppSettingsSchema = z.object({
   theme: z.enum(['light', 'dark', 'system']).default('system'),
   autoLockMinutes: z.number().int().min(1).max(60).default(5),
+  stayLoggedIn: z.boolean().default(false),
   defaultEntryType: ConsumptionTypeSchema.optional(),
   intention: z.string().max(1000).optional(),
 })
