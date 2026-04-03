@@ -3,6 +3,7 @@ import { lazy, Suspense } from 'react'
 import { AppShell } from '@/components/layout/AppShell'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { DataProvider } from '@/contexts/DataContext'
+import { AutoLockSync } from '@/components/AutoLockSync'
 import { Onboarding } from '@/components/auth/Onboarding'
 import { LockScreen } from '@/components/auth/LockScreen'
 import LogPage from '@/pages/LogPage'
@@ -49,6 +50,7 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <DataProvider>
+          <AutoLockSync />
           <AppRoutes />
         </DataProvider>
       </AuthProvider>

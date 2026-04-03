@@ -46,6 +46,7 @@ const DataContext = createContext<DataContextValue | null>(null)
 const DEFAULT_SETTINGS: AppSettings = {
   theme: 'system',
   autoLockMinutes: 5,
+  stayLoggedIn: false,
 }
 
 const SETTINGS_ID = 'app-settings'

@@ -32,6 +32,7 @@ export interface Goal {
 export interface AppSettings {
   theme: Theme
   autoLockMinutes: number
+  stayLoggedIn: boolean
   defaultEntryType?: ConsumptionType
   intention?: string
 }

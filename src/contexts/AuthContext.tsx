@@ -20,6 +20,7 @@ interface AuthContextValue {
   changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
   masterKey: CryptoKey | null
   webAuthnSupported: boolean
+  setAutoLockConfig: (minutes: number, stayLoggedIn: boolean) => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -30,7 +31,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const masterKeyRef = useRef<CryptoKey | null>(null)
   const [masterKeyVersion, setMasterKeyVersion] = useState(0) // force re-renders
   const lockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [autoLockMinutes] = useState(5)
+  const [autoLockMinutes, setAutoLockMinutes] = useState(5)
+  const [stayLoggedIn, setStayLoggedIn] = useState(false)
   const webAuthnSupported = isWebAuthnSupported()
 
   useEffect(() => {
@@ -56,9 +58,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [clearLockTimer])
 
   const startLockTimer = useCallback(() => {
+    if (stayLoggedIn) return
     clearLockTimer()
     lockTimerRef.current = setTimeout(() => lock(), autoLockMinutes * 60 * 1000)
-  }, [autoLockMinutes, clearLockTimer, lock])
+  }, [autoLockMinutes, stayLoggedIn, clearLockTimer, lock])
+
+  const setAutoLockConfig = useCallback((minutes: number, stay: boolean) => {
+    setAutoLockMinutes(minutes)
+    setStayLoggedIn(stay)
+  }, [])
 
   useEffect(() => {
     const handleVisibility = () => {
@@ -189,6 +197,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         changePassword,
         masterKey: masterKeyRef.current,
         webAuthnSupported,
+        setAutoLockConfig,
       }}
     >
       {children}
