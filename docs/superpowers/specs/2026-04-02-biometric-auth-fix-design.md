@@ -10,8 +10,9 @@ Trellis has a WebAuthn PRF biometric auth implementation that doesn't work relia
 
 ## Design Decisions
 
-- Biometric supplements password, never replaces it. Password always works as fallback.
-- Adding biometrics from Settings requires password confirmation (prevents unauthorized enrollment on unattended device).
+- **Three auth modes for new users:** password-only, biometric-only, or both (password + biometric).
+- Biometric-only has no recovery path — if the credential is lost (device reset), the vault is permanently inaccessible. Onboarding shows a warning and requires a confirmation checkbox before allowing biometric-only.
+- Adding biometrics from Settings requires password confirmation (prevents unauthorized enrollment on unattended device). Settings enrollment always results in `'both'` since the user already has a password.
 - Users can remove biometrics and revert to password-only.
 - Devices without PRF support show the option greyed out with an explanation.
 
@@ -33,7 +34,20 @@ useEffect(() => {
 
 Expose on context: `prfSupported: boolean | null` (replaces `webAuthnSupported`).
 
-**Fix `createVault`:** Set `authMethod: 'password'` initially. Attempt registration. Only set `'both'` if `registerBiometric()` returns non-null.
+**Refactor `createVault(options)` to support three modes:**
+
+```typescript
+createVault(options: {
+  password?: string
+  withBiometric?: boolean
+}): Promise<void>
+```
+
+- `{ password }` — password-only vault
+- `{ password, withBiometric: true }` — both (attempt biometric, fall back to password-only on failure)
+- `{ withBiometric: true }` — biometric-only vault (no password). Master key is wrapped only with the PRF key. If registration fails, vault creation fails entirely.
+
+For `'both'` mode: set `authMethod: 'password'` initially, attempt registration, only upgrade to `'both'` if `registerBiometric()` returns non-null.
 
 **Add `enableBiometric(password: string): Promise<boolean>`:**
 - Verify password against stored vault meta (derive wrapping key, unwrap master key)
@@ -47,14 +61,18 @@ Expose on context: `prfSupported: boolean | null` (replaces `webAuthnSupported`)
 - Update vault meta: remove PRF fields, set `authMethod: 'password'`
 - Return success/failure
 
-### 2. Onboarding: use `prfSupported`
+### 2. Onboarding: three auth mode choices
 
 **File:** `src/components/auth/Onboarding.tsx`
 
-- Replace `webAuthnSupported` with `prfSupported` from `useAuth()`
-- When `prfSupported === true`: show biometric toggle (current behavior)
-- When `prfSupported === false`: show toggle disabled with text "Your device doesn't support biometric unlock"
-- When `prfSupported === null`: hide the toggle (still loading)
+Replace the current password + optional biometric toggle with a flow that supports three modes:
+
+- **When `prfSupported === true`:** Show auth method selector with three options:
+  - **Password only** — current behavior, password fields shown
+  - **Biometric only** — no password fields. Show warning: "If you reset your device, your data cannot be recovered." Require a confirmation checkbox ("I understand my data cannot be recovered if I lose access to this device") before the create button is enabled.
+  - **Both** — password fields + biometric registration at creation time
+- **When `prfSupported === false`:** Password-only flow. Show biometric option greyed out with "Your device doesn't support biometric unlock".
+- **When `prfSupported === null`:** Hide biometric options (still loading)
 
 ### 3. Settings: biometric management section
 
@@ -74,6 +92,11 @@ New section in the Security area, after the stay-logged-in toggle:
 - Clicking opens password confirmation
 - On correct password: removes PRF data, reverts to password-only
 
+**When `authMethod === 'biometric'`:**
+- "Biometric unlock enabled" label with checkmark
+- No remove option (no password to fall back to)
+- Optionally: "Add password" button to upgrade to `'both'` (future enhancement, out of scope for now)
+
 **When `prfSupported === false`:**
 - "Biometric unlock" label, greyed out
 - "Your device doesn't support biometric unlock" explanation text
@@ -81,16 +104,21 @@ New section in the Security area, after the stay-logged-in toggle:
 **When `prfSupported === null`:**
 - Loading state or hidden
 
-### 4. LockScreen: no changes needed
+### 4. LockScreen: handle biometric-only mode
 
-LockScreen already gates the biometric button on `authMethod === 'both' || authMethod === 'biometric'`. Since the `createVault` fix ensures `authMethod` only says `'both'` when PRF data actually exists, no changes needed.
+**File:** `src/components/auth/LockScreen.tsx`
+
+- When `authMethod === 'biometric'`: show only the biometric unlock button, hide the password form entirely.
+- When `authMethod === 'both'`: show both password form and biometric button (current behavior, already works).
+- When `authMethod === 'password'`: show only password form (current behavior).
 
 ## Files to modify
 
 | File | Change |
 |------|--------|
-| `src/contexts/AuthContext.tsx` | Async PRF detection, fix `createVault`, add `enableBiometric`/`disableBiometric` |
-| `src/components/auth/Onboarding.tsx` | Use `prfSupported`, handle disabled/loading states |
+| `src/contexts/AuthContext.tsx` | Async PRF detection, refactor `createVault` for 3 modes, add `enableBiometric`/`disableBiometric` |
+| `src/components/auth/Onboarding.tsx` | Auth mode selector (password / biometric / both), PRF check, risk warning + confirmation |
+| `src/components/auth/LockScreen.tsx` | Handle biometric-only mode (hide password form) |
 | `src/pages/SettingsPage.tsx` | Add biometric enrollment/removal section |
 
 ## Platform coverage
@@ -104,8 +132,10 @@ All platforms use the same WebAuthn PRF API:
 
 1. `vp check` — lint/format/typecheck pass
 2. `vp test run` — existing tests pass
-3. Manual: on a PRF-capable device, create a new vault with biometrics enabled. Lock and unlock with biometric.
-4. Manual: create a password-only vault, go to Settings, enable biometrics. Lock and unlock with biometric.
-5. Manual: in Settings, remove biometrics. Verify biometric button disappears from lock screen.
-6. Manual: on a device without PRF support, verify the option appears greyed out with explanation.
-7. Manual: simulate registration failure (e.g., cancel the biometric prompt) — verify vault is still created as password-only with appropriate error message.
+3. Manual: on a PRF-capable device, create a new vault with biometrics + password ("both"). Lock and unlock with biometric. Lock and unlock with password.
+4. Manual: create a biometric-only vault. Verify warning and confirmation checkbox appear. Lock and unlock with biometric. Verify password form is hidden on lock screen.
+5. Manual: create a password-only vault, go to Settings, enable biometrics. Lock and unlock with biometric.
+6. Manual: in Settings (with `authMethod: 'both'`), remove biometrics. Verify biometric button disappears from lock screen.
+7. Manual: on a device without PRF support, verify the biometric option appears greyed out with explanation.
+8. Manual: simulate registration failure (e.g., cancel the biometric prompt during "both" mode) — verify vault is still created as password-only with appropriate error message.
+9. Manual: simulate registration failure during biometric-only mode — verify vault creation fails with error message.
