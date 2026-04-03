@@ -1,0 +1,244 @@
+- generic [ref=e4]:
+    - link "Skip to content" [ref=e5] [cursor=pointer]:
+        - /url: '#VPContent'
+    - banner [ref=e7]:
+        - generic [ref=e8]:
+            - link "Vite+" [ref=e9] [cursor=pointer]:
+                - /url: /
+                - img "Vite+" [ref=e10]
+            - navigation "Main Navigation" [ref=e12]:
+                - generic [ref=e13]: Main Navigation
+                - link "Guide" [ref=e14] [cursor=pointer]:
+                    - /url: /guide/
+                    - generic [ref=e15]: Guide
+                - link "Config" [ref=e16] [cursor=pointer]:
+                    - /url: /config/
+                    - generic [ref=e17]: Config
+                - button "Resources" [ref=e19] [cursor=pointer]:
+                    - generic [ref=e21]: Resources
+        - generic [ref=e23]:
+            - button "Search" [ref=e26] [cursor=pointer]:
+                - generic [ref=e28]: Search
+                - generic [ref=e29]:
+                    - generic [ref=e30]: ⌘
+                    - generic [ref=e31]: K
+            - generic [ref=e32]:
+                - switch [ref=e34] [cursor=pointer]
+                - generic [ref=e39]:
+                    - link "github" [ref=e40] [cursor=pointer]:
+                        - /url: https://github.com/voidzero-dev/vite-plus
+                        - img [ref=e41]
+                    - link "x" [ref=e42] [cursor=pointer]:
+                        - /url: https://x.com/voidzerodev
+                        - img [ref=e43]
+                    - link "discord" [ref=e44] [cursor=pointer]:
+                        - /url: https://discord.gg/cC6TEVFKSx
+                        - img [ref=e45]
+                    - link "bluesky" [ref=e46] [cursor=pointer]:
+                        - /url: https://bsky.app/profile/voidzero.dev
+                        - img [ref=e47]
+    - generic [ref=e49]:
+        - complementary [ref=e50]:
+            - navigation "Sidebar Navigation" [ref=e51]:
+                - generic [ref=e52]: Sidebar Navigation
+                - generic [ref=e54]:
+                    - button "Introduction" [ref=e55]:
+                        - heading "Introduction" [level=2] [ref=e57]
+                    - generic [ref=e58]:
+                        - link "Getting Started" [ref=e62] [cursor=pointer]:
+                            - /url: /guide/
+                            - paragraph [ref=e63]: Getting Started
+                        - link "Creating a Project" [ref=e67] [cursor=pointer]:
+                            - /url: /guide/create
+                            - paragraph [ref=e68]: Creating a Project
+                        - link "Migrate to Vite+" [ref=e72] [cursor=pointer]:
+                            - /url: /guide/migrate
+                            - paragraph [ref=e73]: Migrate to Vite+
+                        - link "Installing Dependencies" [ref=e77] [cursor=pointer]:
+                            - /url: /guide/install
+                            - paragraph [ref=e78]: Installing Dependencies
+                        - link "Environment" [ref=e82] [cursor=pointer]:
+                            - /url: /guide/env
+                            - paragraph [ref=e83]: Environment
+                        - link "Why Vite+" [ref=e87] [cursor=pointer]:
+                            - /url: /guide/why
+                            - paragraph [ref=e88]: Why Vite+
+                - generic [ref=e90]:
+                    - button "Develop" [ref=e91]:
+                        - heading "Develop" [level=2] [ref=e93]
+                    - generic [ref=e94]:
+                        - link "Dev" [ref=e98] [cursor=pointer]:
+                            - /url: /guide/dev
+                            - paragraph [ref=e99]: Dev
+                        - generic [ref=e100]:
+                            - link "Check" [ref=e103] [cursor=pointer]:
+                                - /url: /guide/check
+                                - heading "Check" [level=3] [ref=e104]
+                            - generic [ref=e105]:
+                                - link "Lint" [ref=e109] [cursor=pointer]:
+                                    - /url: /guide/lint
+                                    - paragraph [ref=e110]: Lint
+                                - link "Format" [ref=e114] [cursor=pointer]:
+                                    - /url: /guide/fmt
+                                    - paragraph [ref=e115]: Format
+                        - link "Test" [ref=e119] [cursor=pointer]:
+                            - /url: /guide/test
+                            - paragraph [ref=e120]: Test
+                - generic [ref=e122]:
+                    - button "Execute" [ref=e123]:
+                        - heading "Execute" [level=2] [ref=e125]
+                    - generic [ref=e126]:
+                        - link "Run" [ref=e130] [cursor=pointer]:
+                            - /url: /guide/run
+                            - paragraph [ref=e131]: Run
+                        - link "Task Caching" [ref=e135] [cursor=pointer]:
+                            - /url: /guide/cache
+                            - paragraph [ref=e136]: Task Caching
+                        - link "Running Binaries" [ref=e140] [cursor=pointer]:
+                            - /url: /guide/vpx
+                            - paragraph [ref=e141]: Running Binaries
+                - generic [ref=e143]:
+                    - button "Build" [ref=e144]:
+                        - heading "Build" [level=2] [ref=e146]
+                    - generic [ref=e147]:
+                        - link "Build" [ref=e151] [cursor=pointer]:
+                            - /url: /guide/build
+                            - paragraph [ref=e152]: Build
+                        - link "Pack" [ref=e156] [cursor=pointer]:
+                            - /url: /guide/pack
+                            - paragraph [ref=e157]: Pack
+                - generic [ref=e159]:
+                    - button "Maintain" [ref=e160]:
+                        - heading "Maintain" [level=2] [ref=e162]
+                    - generic [ref=e163]:
+                        - link "Upgrading Vite+" [ref=e167] [cursor=pointer]:
+                            - /url: /guide/upgrade
+                            - paragraph [ref=e168]: Upgrading Vite+
+                        - link "Removing Vite+" [ref=e172] [cursor=pointer]:
+                            - /url: /guide/implode
+                            - paragraph [ref=e173]: Removing Vite+
+                - generic [ref=e175]:
+                    - button "Workflow" [ref=e176]:
+                        - heading "Workflow" [level=2] [ref=e178]
+                    - generic [ref=e179]:
+                        - link "IDE Integration" [ref=e183] [cursor=pointer]:
+                            - /url: /guide/ide-integration
+                            - paragraph [ref=e184]: IDE Integration
+                        - link "CI" [ref=e188] [cursor=pointer]:
+                            - /url: /guide/ci
+                            - paragraph [ref=e189]: CI
+                        - link "Commit Hooks" [ref=e193] [cursor=pointer]:
+                            - /url: /guide/commit-hooks
+                            - paragraph [ref=e194]: Commit Hooks
+                        - link "Troubleshooting" [ref=e198] [cursor=pointer]:
+                            - /url: /guide/troubleshooting
+                            - paragraph [ref=e199]: Troubleshooting
+        - generic [ref=e209]:
+            - main [ref=e210]:
+                - generic [ref=e212]:
+                    - heading "Why Vite+? Permalink to “Why Vite+?”" [level=1] [ref=e213]:
+                        - text: Why Vite+?
+                        - link "Permalink to “Why Vite+?”" [ref=e214] [cursor=pointer]:
+                            - /url: '#why-vite'
+                            - text: '#'
+                    - paragraph [ref=e215]: Working in the JavaScript ecosystem today, developers need a runtime such as Node.js, a package manager like pnpm, a dev server, a linter, a formatter, a test runner, a bundler, a task runner, and a growing number of config files.
+                    - paragraph [ref=e216]: Vite showed that frontend tooling could become dramatically faster by rethinking the architecture instead of accepting the status quo. Vite+ applies that same idea to the rest of the local development workflow, and unifies them all into a single package that speeds up and simplifies development.
+                    - heading "The Problem Vite+ is Solving Permalink to “The Problem Vite+ is Solving”" [level=2] [ref=e217]:
+                        - text: The Problem Vite+ is Solving
+                        - link "Permalink to “The Problem Vite+ is Solving”" [ref=e218] [cursor=pointer]:
+                            - /url: '#the-problem-vite-is-solving'
+                            - text: '#'
+                    - paragraph [ref=e219]: The JavaScript tooling ecosystem has seen its fair share of fragmentation and churn. Web apps keep getting larger, and as a result tooling performance, complexity, and inconsistencies have become real bottlenecks as projects grow.
+                    - paragraph [ref=e220]: These bottlenecks are amplified in organizations with multiple teams, each using a different tooling stack. Dependency management, build infrastructure, and code quality become fragmented responsibilities, handled team by team and often not owned as a priority by anyone. As a result, dependencies drift out of sync, builds get slower, and code quality declines. Fixing those problems later requires significantly more effort, slows everyone down, and pulls teams away from shipping product.
+                    - heading "What's Included in Vite+ Permalink to “What's Included in Vite+”" [level=2] [ref=e221]:
+                        - text: What's Included in Vite+
+                        - link "Permalink to “What's Included in Vite+”" [ref=e222] [cursor=pointer]:
+                            - /url: '#what-s-included-in-vite'
+                            - text: '#'
+                    - paragraph [ref=e223]: Vite+ brings the tools needed for modern web development together into a single, integrated toolchain. Instead of assembling and maintaining a custom toolchain, Vite+ provides a consistent entry point that manages the runtime, dependencies, development server, code quality checks, testing, and builds in one place.
+                    - list [ref=e224]:
+                        - listitem [ref=e225]:
+                            - strong [ref=e226]:
+                                - link "Vite" [ref=e227] [cursor=pointer]:
+                                    - /url: https://vite.dev/
+                            - text: and
+                            - strong [ref=e228]:
+                                - link "Rolldown" [ref=e229] [cursor=pointer]:
+                                    - /url: https://rolldown.rs/
+                            - text: for development and application builds
+                        - listitem [ref=e230]:
+                            - strong [ref=e231]:
+                                - link "Vitest" [ref=e232] [cursor=pointer]:
+                                    - /url: https://vitest.dev/
+                            - text: for testing
+                        - listitem [ref=e233]:
+                            - strong [ref=e234]:
+                                - link "Oxlint" [ref=e235] [cursor=pointer]:
+                                    - /url: https://oxc.rs/docs/guide/usage/linter.html
+                            - text: and
+                            - strong [ref=e236]:
+                                - link "Oxfmt" [ref=e237] [cursor=pointer]:
+                                    - /url: https://oxc.rs/docs/guide/usage/formatter.html
+                            - text: for linting and formatting
+                        - listitem [ref=e238]:
+                            - strong [ref=e239]:
+                                - link "tsdown" [ref=e240] [cursor=pointer]:
+                                    - /url: https://tsdown.dev/
+                            - text: for library builds or standalone executables
+                        - listitem [ref=e241]:
+                            - strong [ref=e242]:
+                                - link "Vite Task" [ref=e243] [cursor=pointer]:
+                                    - /url: https://github.com/voidzero-dev/vite-task
+                            - text: for task orchestration
+                    - paragraph [ref=e244]:
+                        - text: 'In practice, this means developers interact with one consistent workflow:'
+                        - code [ref=e245]: vp dev
+                        - text: ','
+                        - code [ref=e246]: vp check
+                        - text: ','
+                        - code [ref=e247]: vp test
+                        - text: ', and'
+                        - code [ref=e248]: vp build
+                        - text: .
+                    - paragraph [ref=e249]: This unified toolchain reduces configuration overhead, improves performance, and makes it easier for teams to maintain consistent tooling across projects.
+                    - heading "Fast and Scalable by Default Permalink to “Fast and Scalable by Default”" [level=2] [ref=e250]:
+                        - text: Fast and Scalable by Default
+                        - link "Permalink to “Fast and Scalable by Default”" [ref=e251] [cursor=pointer]:
+                            - /url: '#fast-and-scalable-by-default'
+                            - text: '#'
+                    - paragraph [ref=e252]:
+                        - text: Vite+ is built on top of modern tooling such as Vite, Rolldown, Oxc, Vitest, and Vite Task to keep your projects fast and scalable as your codebase grows. By using Rust, we can speed up common tasks by
+                        - link "10× or sometimes even by 100×" [ref=e253] [cursor=pointer]:
+                            - /url: https://voidzero.dev/posts/announcing-vite-plus-alpha#performance-scale
+                        - text: . However, many Rust-based toolchains are incompatible with existing tools, or aren't extensible using JavaScript.
+                    - paragraph [ref=e254]:
+                        - text: Vite+ bridges Rust to JavaScript via
+                        - link "NAPI-RS" [ref=e255] [cursor=pointer]:
+                            - /url: https://napi.rs/
+                        - text: which allows it to provide a familiar, easy-to-configure, and extensible interface in JavaScript with a great ecosystem-compatible developer experience.
+                    - paragraph [ref=e256]:
+                        - text: Unifying the toolchain has performance benefits beyond just using faster tools on their own. For example, many developers set up their linter with "type aware" tools, requiring a full-typecheck to be run during the linting stage. With
+                        - code [ref=e257]: vp check
+                        - text: you can format, lint, and type-check your code all in a single pass, speeding up static checks by 2× compared to running type-aware lint rules and type-checks separately.
+                    - heading "Fully Open Source Permalink to “Fully Open Source”" [level=2] [ref=e258]:
+                        - text: Fully Open Source
+                        - link "Permalink to “Fully Open Source”" [ref=e259] [cursor=pointer]:
+                            - /url: '#fully-open-source'
+                            - text: '#'
+                    - paragraph [ref=e260]: Vite+ is fully open source and not a new framework or locked-down platform. Vite+ integrates with the existing Vite ecosystem and the frameworks built on top of it, including React, Vue, Svelte, and others. It can use pnpm, npm, or Yarn, and manages the Node.js runtime for you.
+                    - paragraph [ref=e261]:
+                        - text: We always welcome contributions from the community. See our
+                        - link "Contributing Guidelines" [ref=e262] [cursor=pointer]:
+                            - /url: https://github.com/voidzero-dev/vite-plus/blob/main/CONTRIBUTING.md
+                        - text: to get involved.
+            - contentinfo [ref=e263]:
+                - navigation "Pager" [ref=e264]:
+                    - generic [ref=e265]: Pager
+                    - link "Previous page Environment" [ref=e267] [cursor=pointer]:
+                        - /url: /guide/env
+                        - generic [ref=e268]: Previous page
+                        - generic [ref=e269]: Environment
+                    - link "Next page Dev" [ref=e271] [cursor=pointer]:
+                        - /url: /guide/dev
+                        - generic [ref=e272]: Next page
+                        - generic [ref=e273]: Dev

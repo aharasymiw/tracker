@@ -1,0 +1,432 @@
+- generic [ref=e3]:
+    - banner [ref=e5]:
+        - generic [ref=e6]:
+            - link "Vite+" [ref=e7] [cursor=pointer]:
+                - /url: /
+                - img "Vite+" [ref=e8]
+            - navigation "Main Navigation" [ref=e10]:
+                - generic [ref=e11]: Main Navigation
+                - link "Guide" [ref=e12] [cursor=pointer]:
+                    - /url: /guide/
+                    - generic [ref=e13]: Guide
+                - link "Config" [ref=e14] [cursor=pointer]:
+                    - /url: /config/
+                    - generic [ref=e15]: Config
+                - button "Resources" [ref=e17] [cursor=pointer]:
+                    - generic [ref=e19]: Resources
+        - generic [ref=e21]:
+            - button "Search" [ref=e24] [cursor=pointer]:
+                - generic [ref=e26]: Search
+                - generic [ref=e27]:
+                    - generic [ref=e28]: ⌘
+                    - generic [ref=e29]: K
+            - button "extra navigation" [ref=e32] [cursor=pointer]
+    - generic [ref=e35]:
+        - generic [ref=e36]:
+            - img "Vite+ Logo" [ref=e37]
+            - heading "The Unified Toolchain for the Web" [level=1] [ref=e38]:
+                - generic [ref=e39]: The Unified
+                - generic [ref=e40]: Toolchain for the Web
+            - paragraph [ref=e41]: Manage your runtime, package manager, and frontend stack with one tool.
+            - paragraph [ref=e42]: Free and open source under the MIT license.
+        - generic [ref=e43]:
+            - link "Get started" [ref=e44] [cursor=pointer]:
+                - /url: /guide
+            - link "Read the Announcement" [ref=e45] [cursor=pointer]:
+                - /url: https://voidzero.dev/posts/announcing-vite-plus-alpha
+    - generic [ref=e48]:
+        - generic [ref=e50]:
+            - generic [ref=e51]: $ vp create
+            - generic [ref=e53]: ◇ Select a template vite:application
+            - generic [ref=e54]: ◇ Project directory vite-app
+            - generic [ref=e55]: • Node 24.14.0 pnpm 10.28.0
+            - generic [ref=e56]: ✓ Dependencies installed in 1.1s
+            - generic [ref=e57]: '→ Next: cd vite-app && vp dev'
+        - tablist "features" [ref=e58]:
+            - tab "create" [selected] [ref=e59] [cursor=pointer]
+            - tab "dev" [ref=e60] [cursor=pointer]
+            - tab "check" [ref=e61] [cursor=pointer]
+            - tab "test" [ref=e62] [cursor=pointer]
+            - tab "build" [ref=e63] [cursor=pointer]
+    - generic [ref=e64]:
+        - generic [ref=e65]:
+            - generic [ref=e66]: Getting started
+            - heading "Install vp globally" [level=4] [ref=e67]
+            - paragraph [ref=e68]:
+                - text: Install Vite+ once, open a new terminal session, then run
+                - code [ref=e69]: vp help
+                - text: .
+            - paragraph [ref=e70]:
+                - text: For CI, use
+                - link "setup-vp" [ref=e71] [cursor=pointer]:
+                    - /url: https://github.com/voidzero-dev/setup-vp
+                - text: .
+        - generic [ref=e72]:
+            - generic [ref=e74]:
+                - generic [ref=e75]:
+                    - generic [ref=e76]: macOS / Linux
+                    - generic [ref=e77]: curl -fsSL https://vite.plus | bash
+                - button "Copy macOS / Linux install command" [ref=e78] [cursor=pointer]:
+                    - img [ref=e79]
+                    - generic [ref=e80]: Copy
+            - generic [ref=e82]:
+                - generic [ref=e83]:
+                    - generic [ref=e84]: Windows (PowerShell)
+                    - generic [ref=e85]: irm https://vite.plus/ps1 | iex
+                - button "Copy Windows (PowerShell) install command" [ref=e86] [cursor=pointer]:
+                    - img [ref=e87]
+                    - generic [ref=e88]: Copy
+    - generic [ref=e89]:
+        - generic [ref=e90]:
+            - generic [ref=e91]:
+                - heading "Manages your runtime and package manager" [level=5] [ref=e92]
+                - paragraph [ref=e93]:
+                    - text: Use
+                    - code [ref=e94]: node
+                    - text: automatically, with the right package manager selected for every project.
+            - generic [ref=e95]:
+                - link "node" [ref=e96] [cursor=pointer]:
+                    - /url: https://nodejs.org
+                    - img "node" [ref=e97]
+                - generic [ref=e98]:
+                    - code [ref=e99]: pnpm
+                    - code [ref=e100]: npm
+                    - code [ref=e101]: yarn
+        - generic [ref=e102]:
+            - generic [ref=e103]:
+                - heading "Simplifies everyday development" [level=5] [ref=e104]
+                - paragraph [ref=e105]: One configuration file and one consistent flow of commands across your whole stack.
+            - generic [ref=e106]:
+                - code [ref=e107]: vp env
+                - code [ref=e108]: vp install
+                - code [ref=e109]: vp dev
+                - code [ref=e110]: vp check
+                - code [ref=e111]: vp build
+                - code [ref=e112]: vp run
+        - generic [ref=e113]:
+            - generic [ref=e114]:
+                - heading "Powering your favorite frameworks" [level=5] [ref=e115]
+                - paragraph [ref=e116]: Supports every framework built on Vite.
+            - generic [ref=e117]:
+                - list [ref=e118]:
+                    - link "react" [ref=e119] [cursor=pointer]:
+                        - /url: https://react.dev
+                        - img "react" [ref=e120]
+                    - link "vue" [ref=e121] [cursor=pointer]:
+                        - /url: https://vuejs.org
+                        - img "vue" [ref=e122]
+                    - link "svelte" [ref=e123] [cursor=pointer]:
+                        - /url: https://svelte.dev
+                        - img "svelte" [ref=e124]
+                    - link "solid" [ref=e125] [cursor=pointer]:
+                        - /url: https://solidjs.com
+                        - img "solid" [ref=e126]
+                - paragraph [ref=e127]: + 20 more
+    - generic [ref=e128]:
+        - generic [ref=e129]:
+            - heading "A trusted stack to standardize on" [level=5] [ref=e130]
+            - paragraph [ref=e131]: Vite+ is built on established open source industry standards, and maintained by the same experts behind these projects.
+            - generic [ref=e132]:
+                - generic [ref=e134]:
+                    - img "Vite" [ref=e135]
+                    - generic [ref=e136]:
+                        - paragraph [ref=e137]: 69m+
+                        - paragraph [ref=e138]: Weekly npm downloads
+                    - generic [ref=e139]:
+                        - paragraph [ref=e140]: 78.7k
+                        - paragraph [ref=e141]: GitHub stars
+                - generic [ref=e143]:
+                    - img "Vitest" [ref=e144]
+                    - generic [ref=e145]:
+                        - paragraph [ref=e146]: 35m+
+                        - paragraph [ref=e147]: Weekly npm downloads
+                    - generic [ref=e148]:
+                        - paragraph [ref=e149]: 16.1k
+                        - paragraph [ref=e150]: GitHub stars
+                - generic [ref=e152]:
+                    - img "Oxc" [ref=e153]
+                    - generic [ref=e154]:
+                        - paragraph [ref=e155]: 5m+
+                        - paragraph [ref=e156]: Weekly npm downloads
+                    - generic [ref=e157]:
+                        - paragraph [ref=e158]: 19.8k
+                        - paragraph [ref=e159]: GitHub stars
+        - generic [ref=e160]:
+            - heading "Stay fast at scale" [level=5] [ref=e161]
+            - paragraph [ref=e162]: 'With low-level components written in Rust, Vite+ delivers enterprise-scale performance: up to 40× faster builds than webpack, ~50× to ~100× faster linting than ESLint, and up to 30× faster formatting than Prettier.'
+        - generic [ref=e165]:
+            - heading "Focus on shipping, not tooling" [level=5] [ref=e166]
+            - list [ref=e167]:
+                - listitem [ref=e168]: Stop wasting time on tooling maintenance
+                - listitem [ref=e169]: Improve cross-team developer mobility
+                - listitem [ref=e170]: Standardize best practices for humans and AI-assisted workflows
+        - generic [ref=e173]:
+            - heading "Supply chain security" [level=5] [ref=e174]
+            - paragraph [ref=e175]: Vite+ development follows rigorous security practices, and we vet its dependencies across the unified toolchain.
+            - img "Vite+ vets all dependencies with rigorous security practices" [ref=e176]
+    - generic [ref=e177]:
+        - generic [ref=e178]:
+            - heading "Everything you need in one tool" [level=2] [ref=e179]
+            - paragraph [ref=e180]: Vite+ unifies your entire web development workflow into a single, powerful command-line interface.
+        - list [ref=e183]:
+            - listitem [ref=e185]:
+                - link "dev & build" [ref=e186] [cursor=pointer]:
+                    - /url: '#feature-dev-build'
+                    - img [ref=e187]
+                    - generic [ref=e191]: dev & build
+            - listitem [ref=e192]:
+                - link "check" [ref=e193] [cursor=pointer]:
+                    - /url: '#feature-check'
+                    - img [ref=e194]
+                    - generic [ref=e198]: check
+            - listitem [ref=e199]:
+                - link "test" [ref=e200] [cursor=pointer]:
+                    - /url: '#feature-test'
+                    - img [ref=e201]
+                    - generic [ref=e204]: test
+            - listitem [ref=e205]:
+                - link "run" [ref=e206] [cursor=pointer]:
+                    - /url: '#feature-run'
+                    - img [ref=e207]
+                    - generic [ref=e210]: run
+            - listitem [ref=e211]:
+                - link "pack" [ref=e212] [cursor=pointer]:
+                    - /url: '#feature-pack'
+                    - img [ref=e213]
+                    - generic [ref=e216]: pack
+        - generic [ref=e217]:
+            - generic [ref=e218]:
+                - generic [ref=e219]:
+                    - generic [ref=e220]: Vite+ dev & build
+                    - heading "Blazingly fast builds" [level=4] [ref=e221]
+                    - paragraph [ref=e222]: Spin up dev servers and create production builds with extreme speed. Stay in the flow and keep CI fast.
+                    - list [ref=e223]:
+                        - listitem [ref=e224]:
+                            - text: Always instant
+                            - code [ref=e225]: Hot Module Replacement (HMR)
+                        - listitem [ref=e226]: 40× faster production build than webpack
+                        - listitem [ref=e227]: Opt-in full-bundle dev mode for large apps
+                        - listitem [ref=e228]: Huge ecosystem of plugins
+                - generic [ref=e229]:
+                    - generic [ref=e230]: Powered by
+                    - link "Vite" [ref=e231] [cursor=pointer]:
+                        - /url: https://vite.dev/
+                        - figure "Vite" [ref=e232]:
+                            - img "Vite" [ref=e233]
+                            - generic [ref=e234]: Vite
+                    - generic [ref=e235]: '&'
+                    - link "Rolldown" [ref=e236] [cursor=pointer]:
+                        - /url: https://rolldown.rs/
+                        - figure "Rolldown" [ref=e237]:
+                            - img "Rolldown" [ref=e238]
+                            - generic [ref=e239]: Rolldown
+            - generic [ref=e242]:
+                - generic [ref=e243]: $ vp build
+                - generic [ref=e245]: VITE+ building for production
+                - generic [ref=e246]: ✓ Transformed 128 modules
+                - generic [ref=e248]: dist/index.html 0.42 kB
+                - generic [ref=e249]: dist/assets/index.css 5.1 kB
+                - generic [ref=e250]: dist/assets/index.js 46.2 kB
+                - generic [ref=e251]: ✓ Built in 421ms
+        - generic [ref=e252]:
+            - generic [ref=e253]:
+                - generic [ref=e254]:
+                    - generic [ref=e255]: Vite+ check
+                    - heading "Format, lint, and type-check in one pass" [level=4] [ref=e256]
+                    - paragraph [ref=e257]:
+                        - text: Keep every repo consistent with one command powered by Oxlint, Oxfmt, and
+                        - code [ref=e258]: tsgo
+                        - text: .
+                    - list [ref=e259]:
+                        - listitem [ref=e260]:
+                            - code [ref=e261]: Prettier
+                            - text: compatible formatting
+                        - listitem [ref=e262]:
+                            - text: 600+
+                            - code [ref=e263]: ESLint
+                            - text: compatible rules
+                        - listitem [ref=e264]:
+                            - text: Type-aware linting and fast type checks with
+                            - code [ref=e265]: tsgo
+                        - listitem [ref=e266]:
+                            - code [ref=e267]: vp check --fix
+                            - text: auto-fixes where possible
+                - generic [ref=e268]:
+                    - generic [ref=e269]:
+                        - generic [ref=e270]: Powered by
+                        - link "Oxc / Oxlint" [ref=e271] [cursor=pointer]:
+                            - /url: https://oxc.rs/
+                            - figure "Oxc / Oxlint" [ref=e272]:
+                                - img "Oxc" [ref=e273]
+                                - generic [ref=e274]: Oxc / Oxlint
+                    - generic [ref=e275]:
+                        - generic [ref=e276]: Powered by
+                        - link "Oxc / Oxfmt" [ref=e277] [cursor=pointer]:
+                            - /url: https://oxc.rs/docs/guide/usage/formatter
+                            - figure "Oxc / Oxfmt" [ref=e278]:
+                                - img "Oxc" [ref=e279]
+                                - generic [ref=e280]: Oxc / Oxfmt
+            - generic [ref=e283]:
+                - generic [ref=e284]: $ vp check
+                - generic [ref=e286]: 'pass: All 42 files are correctly formatted (88ms, 16 threads)'
+                - generic [ref=e288]: 'pass: Found no warnings, lint errors, or type errors in 42 files(184ms, 16 threads)'
+        - generic [ref=e289]:
+            - generic [ref=e290]:
+                - generic [ref=e291]:
+                    - generic [ref=e292]: Vite+ test
+                    - heading "Testing made simple" [level=4] [ref=e293]
+                    - paragraph [ref=e294]: Feature rich test runner that automatically reuses the same resolve and transform config from your application.
+                    - list [ref=e295]:
+                        - listitem [ref=e296]:
+                            - code [ref=e297]: Jest
+                            - text: compatible API
+                        - listitem [ref=e298]: Test isolation by default
+                        - listitem [ref=e299]: 'Browser Mode: run unit tests in actual browsers'
+                        - listitem [ref=e300]: Coverage reports, snapshot tests, type tests, visual regression tests...
+                - generic [ref=e301]:
+                    - generic [ref=e302]: Powered by
+                    - link "Vitest" [ref=e303] [cursor=pointer]:
+                        - /url: https://vitest.dev/
+                        - figure "Vitest" [ref=e304]:
+                            - img "Vitest" [ref=e305]
+                            - generic [ref=e306]: Vitest
+            - generic [ref=e309]:
+                - img "vp test terminal command"
+        - generic [ref=e310]:
+            - generic [ref=e312]:
+                - generic [ref=e313]: Vite+ run
+                - heading "Vite Task for monorepos and scripts" [level=4] [ref=e314]
+                - paragraph [ref=e315]:
+                    - text: Run built-in commands and
+                    - code [ref=e316]: package.json
+                    - text: scripts with automated caching and dependency-aware execution.
+                - list [ref=e317]:
+                    - listitem [ref=e318]: Automated input tracking for cacheable tasks
+                    - listitem [ref=e319]: Dependency-aware execution across workspace packages
+                    - listitem [ref=e320]:
+                        - text: Familiar script execution via
+                        - code [ref=e321]: vp run
+            - tablist "Vite Task cache examples" [ref=e327]:
+                - tab "Cold Cache" [selected] [ref=e328] [cursor=pointer]
+                - tab "Full Replay" [ref=e329] [cursor=pointer]
+                - tab "Partial Replay" [ref=e330] [cursor=pointer]
+                - tab "Full Rebuild" [ref=e331] [cursor=pointer]
+        - generic [ref=e332]:
+            - generic [ref=e333]:
+                - generic [ref=e334]:
+                    - generic [ref=e335]: Vite+ pack
+                    - heading "Library packaging with best practices baked in" [level=4] [ref=e336]
+                    - paragraph [ref=e337]:
+                        - text: Package TS and JS libraries for npm or build standalone app binaries with a single
+                        - code [ref=e338]: vp pack
+                        - text: command.
+                    - list [ref=e339]:
+                        - listitem [ref=e340]:
+                            - code [ref=e341]: DTS
+                            - text: generation & bundling
+                        - listitem [ref=e342]: Automatic package exports generation
+                        - listitem [ref=e343]: Standalone app binaries and transform-only unbundled mode
+                - generic [ref=e344]:
+                    - generic [ref=e345]: Powered by
+                    - link "Rolldown" [ref=e346] [cursor=pointer]:
+                        - /url: https://rolldown.rs/
+                        - figure "Rolldown" [ref=e347]:
+                            - img "Rolldown" [ref=e348]
+                            - generic [ref=e349]: Rolldown
+                    - generic [ref=e350]: /
+                    - link "tsdown" [ref=e351] [cursor=pointer]:
+                        - /url: https://tsdown.dev/
+            - generic [ref=e354]:
+                - generic [ref=e355]: $ vp pack
+                - generic [ref=e357]: 'CLI Building entry: src/index.ts'
+                - generic [ref=e358]: 'CLI Using config: tsdown.config.ts'
+                - generic [ref=e359]: CLI tsdown 0.14.1 powered by Rolldown
+                - generic [ref=e361]: ESM dist/index.js 4.8 kB
+                - generic [ref=e362]: DTS dist/index.d.ts 1.2 kB
+                - generic [ref=e363]: ✓ Pack completed in 128ms
+    - generic [ref=e364]:
+        - heading "Fullstack? No problem." [level=3] [ref=e365]
+        - paragraph [ref=e366]: Vite+ can be the foundation of any type of web apps - from SPAs to fullstack meta frameworks.
+    - generic [ref=e367]:
+        - generic [ref=e368]:
+            - generic [ref=e369]:
+                - heading "Meta Frameworks" [level=6] [ref=e370]
+                - paragraph [ref=e371]: You can use meta-frameworks that ship as Vite plugins with Vite+
+            - img "Meta frameworks"
+        - generic [ref=e372]:
+            - generic [ref=e373]:
+                - generic [ref=e374]:
+                    - heading "Platform Agnostic" [level=6] [ref=e375]
+                    - paragraph [ref=e376]: First-class support on Vercel, Netlify, Cloudflare & more
+                - generic [ref=e377]:
+                    - generic [ref=e378]:
+                        - img "Vercel"
+                    - generic [ref=e379]:
+                        - img "Netlify"
+                    - generic [ref=e380]:
+                        - img "Cloudflare"
+                    - generic [ref=e381]:
+                        - img "Render"
+            - generic [ref=e382]:
+                - generic [ref=e383]:
+                    - img "Nitro icon" [ref=e384]
+                    - heading "Deploy anywhere by pairing with Nitro" [level=6] [ref=e385]
+                - img "Deploy anywhere with Nitro"
+    - contentinfo [ref=e390]:
+        - generic [ref=e392]:
+            - generic [ref=e393]:
+                - heading "Free & open source" [level=3] [ref=e394]
+                - paragraph [ref=e395]: Vite+ is free and open source, made possible by a full-time team and passionate open-source contributors.
+                - link "Contribute" [ref=e396] [cursor=pointer]:
+                    - /url: https://github.com/voidzero-dev/vite-plus/blob/main/CONTRIBUTING.md
+            - link "Brought to you by VoidZero" [ref=e397] [cursor=pointer]:
+                - /url: https://voidzero.dev
+                - img "Brought to you by VoidZero" [ref=e398]
+        - generic [ref=e399]:
+            - generic [ref=e400]:
+                - heading "Take your team's productivity to the next level with Vite+" [level=2] [ref=e401]
+                - link "Get started" [ref=e403] [cursor=pointer]:
+                    - /url: /guide
+            - generic [ref=e404]:
+                - generic [ref=e405]:
+                    - paragraph [ref=e406]: Company
+                    - list [ref=e407]:
+                        - listitem [ref=e408]:
+                            - link "VoidZero" [ref=e409] [cursor=pointer]:
+                                - /url: https://voidzero.dev/
+                        - listitem [ref=e410]:
+                            - link "Vite" [ref=e411] [cursor=pointer]:
+                                - /url: https://vite.dev/
+                        - listitem [ref=e412]:
+                            - link "Vitest" [ref=e413] [cursor=pointer]:
+                                - /url: https://vitest.dev/
+                        - listitem [ref=e414]:
+                            - link "Rolldown" [ref=e415] [cursor=pointer]:
+                                - /url: https://rolldown.rs/
+                        - listitem [ref=e416]:
+                            - link "Oxc" [ref=e417] [cursor=pointer]:
+                                - /url: https://oxc.rs/
+                - generic [ref=e418]:
+                    - paragraph [ref=e419]: Social
+                    - list [ref=e420]:
+                        - listitem [ref=e421]:
+                            - link "GitHub" [ref=e422] [cursor=pointer]:
+                                - /url: https://github.com/voidzero-dev
+                                - img [ref=e423]
+                                - text: GitHub
+                        - listitem [ref=e424]:
+                            - link "X.com" [ref=e425] [cursor=pointer]:
+                                - /url: https://x.com/voidzerodev
+                                - img [ref=e426]
+                                - text: X.com
+                        - listitem [ref=e427]:
+                            - link "Discord" [ref=e428] [cursor=pointer]:
+                                - /url: https://discord.gg/cC6TEVFKSx
+                                - img [ref=e429]
+                                - text: Discord
+                        - listitem [ref=e430]:
+                            - link "Bluesky" [ref=e431] [cursor=pointer]:
+                                - /url: https://bsky.app/profile/voidzero.dev
+                                - img [ref=e432]
+                                - text: Bluesky
+        - paragraph [ref=e434]: © 2026 VoidZero Inc. All Rights Reserved.
