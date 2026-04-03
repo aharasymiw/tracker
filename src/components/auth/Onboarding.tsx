@@ -91,25 +91,29 @@ export function Onboarding() {
               icon={<KeyRound size={20} />}
               label="Password only"
             />
-            <AuthModeButton
-              active={authMode === 'both'}
-              onClick={() => {
-                setAuthMode('both')
-                setRiskAcknowledged(false)
-              }}
-              icon={<Fingerprint size={20} />}
-              label="Password + biometric"
-              disabled={prfSupported === false}
-              disabledReason="Your device doesn't support biometric unlock"
-            />
-            <AuthModeButton
-              active={authMode === 'biometric'}
-              onClick={() => setAuthMode('biometric')}
-              icon={<Fingerprint size={20} />}
-              label="Biometric only"
-              disabled={prfSupported === false}
-              disabledReason="Your device doesn't support biometric unlock"
-            />
+            {prfSupported !== null && (
+              <AuthModeButton
+                active={authMode === 'both'}
+                onClick={() => {
+                  setAuthMode('both')
+                  setRiskAcknowledged(false)
+                }}
+                icon={<Fingerprint size={20} />}
+                label="Password + biometric"
+                disabled={prfSupported === false}
+                disabledReason="Your device doesn't support biometric unlock"
+              />
+            )}
+            {prfSupported !== null && (
+              <AuthModeButton
+                active={authMode === 'biometric'}
+                onClick={() => setAuthMode('biometric')}
+                icon={<Fingerprint size={20} />}
+                label="Biometric only"
+                disabled={prfSupported === false}
+                disabledReason="Your device doesn't support biometric unlock"
+              />
+            )}
           </div>
 
           {/* Password fields */}
