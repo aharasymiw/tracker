@@ -50,6 +50,7 @@ createVault(options: {
 For `'both'` mode: set `authMethod: 'password'` initially, attempt registration, only upgrade to `'both'` if `registerBiometric()` returns non-null.
 
 **Add `enableBiometric(password: string): Promise<boolean>`:**
+
 - Verify password against stored vault meta (derive wrapping key, unwrap master key)
 - Call `registerBiometric('trellis-user')`
 - Wrap current in-memory master key with PRF key
@@ -57,6 +58,7 @@ For `'both'` mode: set `authMethod: 'password'` initially, attempt registration,
 - Return success/failure
 
 **Add `disableBiometric(password: string): Promise<boolean>`:**
+
 - Verify password
 - Update vault meta: remove PRF fields, set `authMethod: 'password'`
 - Return success/failure
@@ -81,27 +83,32 @@ Replace the current password + optional biometric toggle with a flow that suppor
 New section in the Security area, after the stay-logged-in toggle:
 
 **When `authMethod === 'password'` and `prfSupported === true`:**
+
 - "Enable biometric unlock" button
 - Clicking opens password confirmation input
 - On correct password + successful registration: show success message
 - On failure: show error message
 
 **When `authMethod === 'both'`:**
+
 - "Biometric unlock enabled" label with checkmark
 - "Remove biometric" button
 - Clicking opens password confirmation
 - On correct password: removes PRF data, reverts to password-only
 
 **When `authMethod === 'biometric'`:**
+
 - "Biometric unlock enabled" label with checkmark
 - No remove option (no password to fall back to)
 - Optionally: "Add password" button to upgrade to `'both'` (future enhancement, out of scope for now)
 
 **When `prfSupported === false`:**
+
 - "Biometric unlock" label, greyed out
 - "Your device doesn't support biometric unlock" explanation text
 
 **When `prfSupported === null`:**
+
 - Loading state or hidden
 
 ### 4. LockScreen: handle biometric-only mode
@@ -114,16 +121,17 @@ New section in the Security area, after the stay-logged-in toggle:
 
 ## Files to modify
 
-| File | Change |
-|------|--------|
-| `src/contexts/AuthContext.tsx` | Async PRF detection, refactor `createVault` for 3 modes, add `enableBiometric`/`disableBiometric` |
-| `src/components/auth/Onboarding.tsx` | Auth mode selector (password / biometric / both), PRF check, risk warning + confirmation |
-| `src/components/auth/LockScreen.tsx` | Handle biometric-only mode (hide password form) |
-| `src/pages/SettingsPage.tsx` | Add biometric enrollment/removal section |
+| File                                 | Change                                                                                            |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| `src/contexts/AuthContext.tsx`       | Async PRF detection, refactor `createVault` for 3 modes, add `enableBiometric`/`disableBiometric` |
+| `src/components/auth/Onboarding.tsx` | Auth mode selector (password / biometric / both), PRF check, risk warning + confirmation          |
+| `src/components/auth/LockScreen.tsx` | Handle biometric-only mode (hide password form)                                                   |
+| `src/pages/SettingsPage.tsx`         | Add biometric enrollment/removal section                                                          |
 
 ## Platform coverage
 
 All platforms use the same WebAuthn PRF API:
+
 - **macOS:** Touch ID (fingerprint) via Safari/Chrome
 - **iOS/iPadOS:** Face ID or Touch ID via Safari (requires iOS 18+)
 - **Android:** Fingerprint or face unlock via Chrome (requires Chrome 116+)

@@ -14,19 +14,20 @@
 
 ## File Structure
 
-| File | Role | Action |
-|------|------|--------|
-| `src/contexts/AuthContext.tsx` | Vault state machine, auth methods | Modify |
-| `src/components/auth/Onboarding.tsx` | Vault creation UI | Modify |
-| `src/components/auth/LockScreen.tsx` | Vault unlock UI | Modify |
-| `src/pages/SettingsPage.tsx` | Biometric enrollment/removal UI | Modify |
-| `tests/integration/auth-flow.test.ts` | Auth integration tests | Modify |
+| File                                  | Role                              | Action |
+| ------------------------------------- | --------------------------------- | ------ |
+| `src/contexts/AuthContext.tsx`        | Vault state machine, auth methods | Modify |
+| `src/components/auth/Onboarding.tsx`  | Vault creation UI                 | Modify |
+| `src/components/auth/LockScreen.tsx`  | Vault unlock UI                   | Modify |
+| `src/pages/SettingsPage.tsx`          | Biometric enrollment/removal UI   | Modify |
+| `tests/integration/auth-flow.test.ts` | Auth integration tests            | Modify |
 
 ---
 
 ### Task 1: Replace `webAuthnSupported` with async `prfSupported` in AuthContext
 
 **Files:**
+
 - Modify: `src/contexts/AuthContext.tsx`
 
 - [ ] **Step 1: Update the context interface**
@@ -51,11 +52,13 @@ interface AuthContextValue {
 - [ ] **Step 2: Replace the sync check with async detection**
 
 Replace:
+
 ```typescript
 const webAuthnSupported = isWebAuthnSupported()
 ```
 
 With:
+
 ```typescript
 const [prfSupported, setPrfSupported] = useState<boolean | null>(null)
 
@@ -103,6 +106,7 @@ git commit -m "refactor: replace webAuthnSupported with async prfSupported in Au
 ### Task 2: Refactor `createVault` to support three auth modes + fix state mismatch
 
 **Files:**
+
 - Modify: `src/contexts/AuthContext.tsx`
 - Test: `tests/integration/auth-flow.test.ts`
 
@@ -130,7 +134,7 @@ describe('auth flow - biometric-only vault (simulated)', () => {
       keyMaterial,
       { name: 'AES-GCM', length: 256 },
       false,
-      ['wrapKey', 'unwrapKey'],
+      ['wrapKey', 'unwrapKey']
     )
 
     // Create master key and wrap with PRF key only (no password)
@@ -151,7 +155,7 @@ describe('auth flow - biometric-only vault (simulated)', () => {
       keyMaterial,
       { name: 'AES-GCM', length: 256 },
       false,
-      ['wrapKey', 'unwrapKey'],
+      ['wrapKey', 'unwrapKey']
     )
     const unlockedKey = await unwrapMasterKey(encryptedMasterKey, masterKeyIV, prfKey2)
     const decrypted = await decrypt(ciphertext, iv, unlockedKey)
@@ -206,7 +210,7 @@ const createVault = useCallback(
       if (result) {
         const { encryptedMasterKey: prfEnc, masterKeyIV: prfIV } = await wrapMasterKey(
           masterKey,
-          result.prfKey,
+          result.prfKey
         )
         meta.prfEncryptedMasterKey = prfEnc
         meta.prfMasterKeyIV = prfIV
@@ -235,7 +239,7 @@ const createVault = useCallback(
     setAuthMethod(meta.authMethod)
     setVaultState('unlocked')
   },
-  [],
+  []
 )
 ```
 
@@ -256,6 +260,7 @@ git commit -m "refactor: createVault supports password/biometric/both modes, fix
 ### Task 3: Add `enableBiometric` and `disableBiometric` to AuthContext
 
 **Files:**
+
 - Modify: `src/contexts/AuthContext.tsx`
 
 - [ ] **Step 1: Add `enableBiometric` to the interface and implementation**
@@ -283,7 +288,7 @@ const enableBiometric = useCallback(async (password: string): Promise<boolean> =
     // Wrap master key with PRF key
     const { encryptedMasterKey: prfEnc, masterKeyIV: prfIV } = await wrapMasterKey(
       masterKeyRef.current,
-      result.prfKey,
+      result.prfKey
     )
     // Update vault meta
     await saveVaultMeta({
@@ -349,6 +354,7 @@ git commit -m "feat: add enableBiometric and disableBiometric methods to AuthCon
 ### Task 4: Update Onboarding for three auth modes
 
 **Files:**
+
 - Modify: `src/components/auth/Onboarding.tsx`
 
 - [ ] **Step 1: Rewrite Onboarding component**
@@ -405,7 +411,7 @@ export function Onboarding() {
       setError(
         authMode === 'biometric'
           ? 'Biometric registration failed. Please try again.'
-          : 'Failed to create vault. Please try again.',
+          : 'Failed to create vault. Please try again.'
       )
     } finally {
       setLoading(false)
@@ -596,6 +602,7 @@ git commit -m "feat: onboarding supports password/biometric/both with risk warni
 ### Task 5: Update LockScreen for biometric-only mode
 
 **Files:**
+
 - Modify: `src/components/auth/LockScreen.tsx`
 
 - [ ] **Step 1: Update LockScreen to handle biometric-only**
@@ -636,7 +643,7 @@ export function LockScreen() {
       setError(
         showPassword
           ? 'Biometric unlock failed. Try your password.'
-          : 'Biometric unlock failed. Please try again.',
+          : 'Biometric unlock failed. Please try again.'
       )
     }
   }
@@ -724,6 +731,7 @@ git commit -m "feat: LockScreen handles biometric-only mode"
 ### Task 6: Add biometric management to Settings
 
 **Files:**
+
 - Modify: `src/pages/SettingsPage.tsx`
 
 - [ ] **Step 1: Add biometric section to SettingsPage**
@@ -787,8 +795,10 @@ const handleDisableBiometric = async () => {
 Add after the change password `</div>` closing tag (after the `{pwSuccess && ...}` line, before `</section>`):
 
 ```tsx
-{/* Biometric */}
-<div className="pt-2 border-t">
+{
+  /* Biometric */
+}
+;<div className="pt-2 border-t">
   {authMethod === 'biometric' && (
     <div className="flex items-center gap-2 text-sm text-primary">
       <Fingerprint size={16} />
@@ -804,12 +814,7 @@ Add after the change password `</div>` closing tag (after the `{pwSuccess && ...
         <span>Biometric unlock enabled</span>
         <Check size={16} className="ml-auto" />
       </div>
-      <Button
-        variant="outline"
-        size="sm"
-        className="w-full"
-        onClick={() => setRemovingBio(true)}
-      >
+      <Button variant="outline" size="sm" className="w-full" onClick={() => setRemovingBio(true)}>
         Remove biometric
       </Button>
     </div>
@@ -838,11 +843,7 @@ Add after the change password `</div>` closing tag (after the `{pwSuccess && ...
         >
           Cancel
         </Button>
-        <Button
-          size="sm"
-          onClick={handleDisableBiometric}
-          disabled={bioLoading || !removePassword}
-        >
+        <Button size="sm" onClick={handleDisableBiometric} disabled={bioLoading || !removePassword}>
           {bioLoading ? 'Removing…' : 'Remove'}
         </Button>
       </div>
@@ -851,18 +852,11 @@ Add after the change password `</div>` closing tag (after the `{pwSuccess && ...
 
   {authMethod === 'password' && prfSupported === true && !enablingBio && (
     <>
-      <Button
-        variant="outline"
-        size="sm"
-        className="w-full"
-        onClick={() => setEnablingBio(true)}
-      >
+      <Button variant="outline" size="sm" className="w-full" onClick={() => setEnablingBio(true)}>
         <Fingerprint size={16} className="mr-2" />
         Enable biometric unlock
       </Button>
-      {bioSuccess && (
-        <p className="text-xs text-primary mt-2">Biometric unlock enabled</p>
-      )}
+      {bioSuccess && <p className="text-xs text-primary mt-2">Biometric unlock enabled</p>}
     </>
   )}
 
@@ -889,11 +883,7 @@ Add after the change password `</div>` closing tag (after the `{pwSuccess && ...
         >
           Cancel
         </Button>
-        <Button
-          size="sm"
-          onClick={handleEnableBiometric}
-          disabled={bioLoading || !bioPassword}
-        >
+        <Button size="sm" onClick={handleEnableBiometric} disabled={bioLoading || !bioPassword}>
           {bioLoading ? 'Enabling…' : 'Enable'}
         </Button>
       </div>
@@ -946,6 +936,7 @@ Expected: all tests pass (existing 37 + 1 new = 38)
 - [ ] **Step 3: Commit any remaining changes**
 
 If formatting was auto-fixed, commit those changes:
+
 ```bash
 git add -A
 git commit -m "style: auto-format"
