@@ -7,7 +7,12 @@ import {
   wrapMasterKey,
   unwrapMasterKey,
 } from '@/lib/crypto'
-import { registerBiometric, authenticateBiometric, isPRFSupported } from '@/lib/auth'
+import {
+  registerBiometric,
+  authenticateBiometric,
+  isPRFSupported,
+  type PRFSupportStatus,
+} from '@/lib/auth'
 import { getVaultMeta, saveVaultMeta } from '@/lib/db'
 
 interface AuthContextValue {
@@ -19,7 +24,7 @@ interface AuthContextValue {
   createVault: (options: { password?: string; withBiometric?: boolean }) => Promise<void>
   changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
   masterKey: CryptoKey | null
-  prfSupported: boolean | null
+  prfSupported: PRFSupportStatus | null
   setAutoLockConfig: (minutes: number, stayLoggedIn: boolean) => void
   enableBiometric: (password: string) => Promise<boolean>
   disableBiometric: (password: string) => Promise<boolean>
@@ -35,7 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const lockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [autoLockMinutes, setAutoLockMinutes] = useState(5)
   const [stayLoggedIn, setStayLoggedIn] = useState(false)
-  const [prfSupported, setPrfSupported] = useState<boolean | null>(null)
+  const [prfSupported, setPrfSupported] = useState<PRFSupportStatus | null>(null)
 
   useEffect(() => {
     isPRFSupported().then(setPrfSupported)
@@ -149,20 +154,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Biometric wrapping
       if (withBiometric) {
-        const result = await registerBiometric('trellis-user')
-        if (result) {
-          const { encryptedMasterKey: prfEnc, masterKeyIV: prfIV } = await wrapMasterKey(
-            masterKey,
-            result.prfKey
-          )
-          meta.prfEncryptedMasterKey = prfEnc
-          meta.prfMasterKeyIV = prfIV
-          meta.prfCredentialId = result.credentialId
-        } else if (!password) {
-          // Biometric-only mode: registration is required
-          throw new Error('Biometric registration failed')
+        try {
+          const result = await registerBiometric('trellis-user')
+          if (result) {
+            const { encryptedMasterKey: prfEnc, masterKeyIV: prfIV } = await wrapMasterKey(
+              masterKey,
+              result.prfKey
+            )
+            meta.prfEncryptedMasterKey = prfEnc
+            meta.prfMasterKeyIV = prfIV
+            meta.prfCredentialId = result.credentialId
+          } else if (!password) {
+            throw new Error('Biometric registration failed')
+          }
+        } catch (err) {
+          if (err instanceof Error && err.message === 'PRF_NOT_SUPPORTED') {
+            setPrfSupported(false)
+            if (!password) throw new Error('Biometric unlock is not supported in this browser.')
+            // password+biometric mode: fall back to password-only silently
+          } else {
+            if (!password) throw err
+          }
         }
-        // If password+biometric and registration failed, fall back to password-only silently
       }
 
       // Determine authMethod from what actually succeeded
@@ -219,7 +232,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const wrappingKey = await deriveKeyFromPassword(password, meta.passwordSalt)
       await unwrapMasterKey(meta.encryptedMasterKey, meta.masterKeyIV, wrappingKey)
       // Register biometric
-      const result = await registerBiometric('trellis-user')
+      let result: Awaited<ReturnType<typeof registerBiometric>>
+      try {
+        result = await registerBiometric('trellis-user')
+      } catch (err) {
+        if (err instanceof Error && err.message === 'PRF_NOT_SUPPORTED') {
+          setPrfSupported(false)
+        }
+        return false
+      }
       if (!result) return false
       // Wrap master key with PRF key
       const { encryptedMasterKey: prfEnc, masterKeyIV: prfIV } = await wrapMasterKey(

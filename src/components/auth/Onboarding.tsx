@@ -43,10 +43,10 @@ export function Onboarding() {
         password: needsPassword ? password : undefined,
         withBiometric: needsBiometric,
       })
-    } catch {
+    } catch (err) {
       setError(
-        authMode === 'biometric'
-          ? 'Biometric registration failed. Please try again.'
+        err instanceof Error && err.message
+          ? err.message
           : 'Failed to create vault. Please try again.'
       )
     } finally {

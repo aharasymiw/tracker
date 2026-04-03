@@ -4,7 +4,9 @@ export function isWebAuthnSupported(): boolean {
   return typeof window !== 'undefined' && 'PublicKeyCredential' in window
 }
 
-export async function isPRFSupported(): Promise<boolean> {
+export type PRFSupportStatus = true | false | 'unknown'
+
+export async function isPRFSupported(): Promise<PRFSupportStatus> {
   if (!isWebAuthnSupported()) return false
   try {
     const PKC = PublicKeyCredential as unknown as Record<
@@ -12,10 +14,20 @@ export async function isPRFSupported(): Promise<boolean> {
       (() => Promise<Record<string, unknown>>) | undefined
     >
     const caps = await PKC['getClientCapabilities']?.()
-    return caps?.['prf'] === true
+    if (caps?.['prf'] === true) return true
+    // getClientCapabilities was unavailable or reported false.
+    // On Chromium Android, PRF may still work — report unknown.
+    if (isChromiumOnAndroid()) return 'unknown'
+    return false
   } catch {
+    if (isChromiumOnAndroid()) return 'unknown'
     return false
   }
+}
+
+function isChromiumOnAndroid(): boolean {
+  const ua = navigator.userAgent
+  return /Android/i.test(ua) && /Chrome\/\d+/i.test(ua) && !/Firefox/i.test(ua)
 }
 
 export async function registerBiometric(
@@ -53,7 +65,7 @@ export async function registerBiometric(
       unknown
     >
     const prfResult = extResults?.prf as { results?: { first?: ArrayBuffer } } | undefined
-    if (!prfResult?.results?.first) return null
+    if (!prfResult?.results?.first) throw new Error('PRF_NOT_SUPPORTED')
 
     const prfOutput = prfResult.results.first
     const keyMaterial = await crypto.subtle.importKey('raw', prfOutput, 'HKDF', false, [
@@ -75,6 +87,7 @@ export async function registerBiometric(
     const rawId = credential.rawId
     return { credentialId: bufToBase64(rawId), prfKey }
   } catch (err) {
+    if (err instanceof Error && err.message === 'PRF_NOT_SUPPORTED') throw err
     console.error('Biometric registration failed:', err)
     return null
   }
