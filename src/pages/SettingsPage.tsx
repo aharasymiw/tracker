@@ -119,50 +119,58 @@ export default function SettingsPage() {
         </div>
 
         {/* Change password */}
-        <div className="pt-2 border-t">
-          {changingPw ? (
-            <div className="space-y-2">
-              <Input
-                type="password"
-                placeholder="Current password"
-                value={oldPw}
-                onChange={(e) => setOldPw(e.target.value)}
-              />
-              <Input
-                type="password"
-                placeholder="New password (min 8 chars)"
-                value={newPw}
-                onChange={(e) => setNewPw(e.target.value)}
-              />
-              {pwError && <p className="text-xs text-destructive">{pwError}</p>}
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setChangingPw(false)
-                    setPwError('')
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button size="sm" onClick={handleChangePw} disabled={savingPw || !oldPw || !newPw}>
-                  {savingPw ? 'Saving…' : 'Change password'}
-                </Button>
+        {authMethod !== 'biometric' && (
+          <div className="pt-2 border-t">
+            {changingPw ? (
+              <div className="space-y-2">
+                <Input
+                  type="password"
+                  placeholder="Current password"
+                  value={oldPw}
+                  onChange={(e) => setOldPw(e.target.value)}
+                />
+                <Input
+                  type="password"
+                  placeholder="New password (min 8 chars)"
+                  value={newPw}
+                  onChange={(e) => setNewPw(e.target.value)}
+                />
+                {pwError && <p className="text-xs text-destructive">{pwError}</p>}
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setChangingPw(false)
+                      setPwError('')
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleChangePw}
+                    disabled={savingPw || !oldPw || !newPw}
+                  >
+                    {savingPw ? 'Saving…' : 'Change password'}
+                  </Button>
+                </div>
               </div>
-            </div>
-          ) : (
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={() => setChangingPw(true)}
-            >
-              Change password
-            </Button>
-          )}
-          {pwSuccess && <p className="text-xs text-primary mt-2">Password changed successfully</p>}
-        </div>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => setChangingPw(true)}
+              >
+                Change password
+              </Button>
+            )}
+            {pwSuccess && (
+              <p className="text-xs text-primary mt-2">Password changed successfully</p>
+            )}
+          </div>
+        )}
 
         {/* Biometric */}
         <div className="pt-2 border-t">

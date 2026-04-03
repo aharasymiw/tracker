@@ -89,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const unlock = useCallback(async (password: string): Promise<boolean> => {
     try {
       const meta = await getVaultMeta()
-      if (!meta) return false
+      if (!meta?.passwordSalt || !meta.encryptedMasterKey || !meta.masterKeyIV) return false
       const wrappingKey = await deriveKeyFromPassword(password, meta.passwordSalt)
       const masterKey = await unwrapMasterKey(
         meta.encryptedMasterKey,
@@ -134,9 +134,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const meta: VaultMeta = {
         version: 1,
         authMethod: 'password',
-        passwordSalt: '',
-        encryptedMasterKey: '',
-        masterKeyIV: '',
         createdAt: new Date().toISOString(),
       }
 
@@ -193,6 +190,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const meta = await getVaultMeta()
         if (!meta || !masterKeyRef.current) return false
+        if (!meta.passwordSalt || !meta.encryptedMasterKey || !meta.masterKeyIV) return false
         // Verify old password
         const oldWrapping = await deriveKeyFromPassword(oldPassword, meta.passwordSalt)
         await unwrapMasterKey(meta.encryptedMasterKey, meta.masterKeyIV, oldWrapping)
@@ -216,6 +214,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const meta = await getVaultMeta()
       if (!meta || !masterKeyRef.current) return false
+      if (!meta.passwordSalt || !meta.encryptedMasterKey || !meta.masterKeyIV) return false
       // Verify password
       const wrappingKey = await deriveKeyFromPassword(password, meta.passwordSalt)
       await unwrapMasterKey(meta.encryptedMasterKey, meta.masterKeyIV, wrappingKey)
@@ -245,7 +244,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const disableBiometric = useCallback(async (password: string): Promise<boolean> => {
     try {
       const meta = await getVaultMeta()
-      if (!meta) return false
+      if (!meta || meta.authMethod !== 'both') return false
+      if (!meta.passwordSalt || !meta.encryptedMasterKey || !meta.masterKeyIV) return false
       // Verify password
       const wrappingKey = await deriveKeyFromPassword(password, meta.passwordSalt)
       await unwrapMasterKey(meta.encryptedMasterKey, meta.masterKeyIV, wrappingKey)

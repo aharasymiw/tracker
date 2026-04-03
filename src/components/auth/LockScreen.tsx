@@ -8,25 +8,25 @@ import { Fingerprint, Loader2 } from 'lucide-react'
 export function LockScreen() {
   const { unlock, unlockWithBiometric, authMethod } = useAuth()
   const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [loadingMethod, setLoadingMethod] = useState<'password' | 'biometric' | null>(null)
   const [error, setError] = useState('')
 
   const showPassword = authMethod === 'password' || authMethod === 'both'
   const showBiometric = authMethod === 'biometric' || authMethod === 'both'
 
   const handleUnlock = async () => {
-    setLoading(true)
+    setLoadingMethod('password')
     setError('')
     const ok = await unlock(password)
-    setLoading(false)
+    setLoadingMethod(null)
     if (!ok) setError('Incorrect password')
   }
 
   const handleBiometric = async () => {
-    setLoading(true)
+    setLoadingMethod('biometric')
     setError('')
     const ok = await unlockWithBiometric()
-    setLoading(false)
+    setLoadingMethod(null)
     if (!ok) {
       setError(
         showPassword
@@ -65,8 +65,12 @@ export function LockScreen() {
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           {showPassword && (
-            <Button className="w-full" onClick={handleUnlock} disabled={loading || !password}>
-              {loading ? (
+            <Button
+              className="w-full"
+              onClick={handleUnlock}
+              disabled={!!loadingMethod || !password}
+            >
+              {loadingMethod === 'password' ? (
                 <>
                   <Loader2 size={16} className="mr-2 animate-spin" /> Unlocking…
                 </>
@@ -81,9 +85,9 @@ export function LockScreen() {
               variant={showPassword ? 'outline' : 'default'}
               className="w-full"
               onClick={handleBiometric}
-              disabled={loading}
+              disabled={!!loadingMethod}
             >
-              {loading && !showPassword ? (
+              {loadingMethod === 'biometric' ? (
                 <>
                   <Loader2 size={16} className="mr-2 animate-spin" /> Unlocking…
                 </>
