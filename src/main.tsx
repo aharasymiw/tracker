@@ -11,7 +11,9 @@ import App from './App.tsx'
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
     const isDark = theme === 'dark' || (theme === 'system' && prefersDark)
     document.documentElement.classList.toggle('dark', isDark)
-  } catch {}
+  } catch {
+    // Ignore localStorage errors (e.g. private browsing)
+  }
 })()
 
 createRoot(document.getElementById('root')!).render(

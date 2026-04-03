@@ -8,7 +8,7 @@ on:
 
 jobs:
   check:
-    name: Lint, format, test
+    name: Check and test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,11 +20,9 @@ jobs:
 
       - run: npm ci
 
-      - run: npx oxlint src
+      - run: npx vp check
 
-      - run: npx prettier --check "src/**/*.{ts,tsx,css}"
-
-      - run: npm test
+      - run: npx vp test run
 
   deploy:
     name: Deploy to Cloudflare Pages
@@ -41,7 +39,7 @@ jobs:
 
       - run: npm ci
 
-      - run: npm run build
+      - run: npx vp build
 
       - run: npx wrangler pages deploy dist --commit-dirty=true
         env:

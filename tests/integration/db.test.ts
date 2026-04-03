@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vite-plus/test'
 import {
   IDBFactory,
   IDBKeyRange,
@@ -25,14 +25,16 @@ beforeEach(async () => {
   globalThis.IDBFactory = IDBFactory as unknown as typeof globalThis.IDBFactory
   globalThis.IDBKeyRange = IDBKeyRange as unknown as typeof globalThis.IDBKeyRange
   globalThis.IDBCursor = IDBCursor as unknown as typeof globalThis.IDBCursor
-  globalThis.IDBCursorWithValue = IDBCursorWithValue as unknown as typeof globalThis.IDBCursorWithValue
+  globalThis.IDBCursorWithValue =
+    IDBCursorWithValue as unknown as typeof globalThis.IDBCursorWithValue
   globalThis.IDBDatabase = IDBDatabase as unknown as typeof globalThis.IDBDatabase
   globalThis.IDBIndex = IDBIndex as unknown as typeof globalThis.IDBIndex
   globalThis.IDBObjectStore = IDBObjectStore as unknown as typeof globalThis.IDBObjectStore
   globalThis.IDBOpenDBRequest = IDBOpenDBRequest as unknown as typeof globalThis.IDBOpenDBRequest
   globalThis.IDBRequest = IDBRequest as unknown as typeof globalThis.IDBRequest
   globalThis.IDBTransaction = IDBTransaction as unknown as typeof globalThis.IDBTransaction
-  globalThis.IDBVersionChangeEvent = IDBVersionChangeEvent as unknown as typeof globalThis.IDBVersionChangeEvent
+  globalThis.IDBVersionChangeEvent =
+    IDBVersionChangeEvent as unknown as typeof globalThis.IDBVersionChangeEvent
 
   const { resetDbForTesting } = await import('@/lib/db')
   resetDbForTesting()

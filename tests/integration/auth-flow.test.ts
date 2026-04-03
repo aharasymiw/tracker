@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from 'vite-plus/test'
 import {
   generateMasterKey,
   generateSalt,
@@ -48,7 +48,7 @@ describe('auth flow - password vault', () => {
   })
 
   it('data is inaccessible with wrong key after unlock', async () => {
-    const salt = await generateSalt()
+    await generateSalt()
     const masterKey1 = await generateMasterKey()
     const masterKey2 = await generateMasterKey()
 
@@ -80,7 +80,11 @@ describe('auth flow - password vault', () => {
 
     // Unlock with new password
     const finalWrapping = await deriveKeyFromPassword('new-password', salt2)
-    const finalKey = await unwrapMasterKey(wrapped2.encryptedMasterKey, wrapped2.masterKeyIV, finalWrapping)
+    const finalKey = await unwrapMasterKey(
+      wrapped2.encryptedMasterKey,
+      wrapped2.masterKeyIV,
+      finalWrapping
+    )
 
     // Data should still be accessible
     const decrypted = await decrypt(ciphertext, iv, finalKey)
