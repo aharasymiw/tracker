@@ -40,9 +40,9 @@ export interface AppSettings {
 export interface VaultMeta {
   version: number
   authMethod: AuthMethod
-  passwordSalt: string // hex-encoded
-  encryptedMasterKey: string // base64-encoded
-  masterKeyIV: string // base64-encoded
+  passwordSalt?: string // hex-encoded
+  encryptedMasterKey?: string // base64-encoded
+  masterKeyIV?: string // base64-encoded
   prfEncryptedMasterKey?: string
   prfMasterKeyIV?: string
   prfCredentialId?: string
