@@ -7,7 +7,7 @@ import {
   wrapMasterKey,
   unwrapMasterKey,
 } from '@/lib/crypto'
-import { registerBiometric, authenticateBiometric, isWebAuthnSupported } from '@/lib/auth'
+import { registerBiometric, authenticateBiometric, isPRFSupported } from '@/lib/auth'
 import { getVaultMeta, saveVaultMeta } from '@/lib/db'
 
 interface AuthContextValue {
@@ -16,11 +16,13 @@ interface AuthContextValue {
   unlock: (password: string) => Promise<boolean>
   unlockWithBiometric: () => Promise<boolean>
   lock: () => void
-  createVault: (password: string, withBiometric?: boolean) => Promise<void>
+  createVault: (options: { password?: string; withBiometric?: boolean }) => Promise<void>
   changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
   masterKey: CryptoKey | null
-  webAuthnSupported: boolean
+  prfSupported: boolean | null
   setAutoLockConfig: (minutes: number, stayLoggedIn: boolean) => void
+  enableBiometric: (password: string) => Promise<boolean>
+  disableBiometric: (password: string) => Promise<boolean>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -33,7 +35,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const lockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [autoLockMinutes, setAutoLockMinutes] = useState(5)
   const [stayLoggedIn, setStayLoggedIn] = useState(false)
-  const webAuthnSupported = isWebAuthnSupported()
+  const [prfSupported, setPrfSupported] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    isPRFSupported().then(setPrfSupported)
+  }, [])
 
   useEffect(() => {
     getVaultMeta().then((meta) => {
@@ -121,22 +127,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const createVault = useCallback(
-    async (password: string, withBiometric = false): Promise<void> => {
-      const salt = await generateSalt()
+    async (options: { password?: string; withBiometric?: boolean }): Promise<void> => {
+      const { password, withBiometric } = options
       const masterKey = await generateMasterKey()
-      const wrappingKey = await deriveKeyFromPassword(password, salt)
-      const { encryptedMasterKey, masterKeyIV } = await wrapMasterKey(masterKey, wrappingKey)
 
       const meta: VaultMeta = {
         version: 1,
-        authMethod: withBiometric ? 'both' : 'password',
-        passwordSalt: salt,
-        encryptedMasterKey,
-        masterKeyIV,
+        authMethod: 'password',
+        passwordSalt: '',
+        encryptedMasterKey: '',
+        masterKeyIV: '',
         createdAt: new Date().toISOString(),
       }
 
-      if (withBiometric && webAuthnSupported) {
+      // Password wrapping
+      if (password) {
+        const salt = await generateSalt()
+        const wrappingKey = await deriveKeyFromPassword(password, salt)
+        const { encryptedMasterKey, masterKeyIV } = await wrapMasterKey(masterKey, wrappingKey)
+        meta.passwordSalt = salt
+        meta.encryptedMasterKey = encryptedMasterKey
+        meta.masterKeyIV = masterKeyIV
+      }
+
+      // Biometric wrapping
+      if (withBiometric) {
         const result = await registerBiometric('trellis-user')
         if (result) {
           const { encryptedMasterKey: prfEnc, masterKeyIV: prfIV } = await wrapMasterKey(
@@ -146,7 +161,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           meta.prfEncryptedMasterKey = prfEnc
           meta.prfMasterKeyIV = prfIV
           meta.prfCredentialId = result.credentialId
+        } else if (!password) {
+          // Biometric-only mode: registration is required
+          throw new Error('Biometric registration failed')
         }
+        // If password+biometric and registration failed, fall back to password-only silently
+      }
+
+      // Determine authMethod from what actually succeeded
+      const hasPassword = !!meta.passwordSalt
+      const hasBiometric = !!meta.prfCredentialId
+      if (hasPassword && hasBiometric) {
+        meta.authMethod = 'both'
+      } else if (hasBiometric) {
+        meta.authMethod = 'biometric'
+      } else {
+        meta.authMethod = 'password'
       }
 
       await saveVaultMeta(meta)
@@ -155,7 +185,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAuthMethod(meta.authMethod)
       setVaultState('unlocked')
     },
-    [webAuthnSupported]
+    []
   )
 
   const changePassword = useCallback(
@@ -182,6 +212,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     []
   )
 
+  const enableBiometric = useCallback(async (password: string): Promise<boolean> => {
+    try {
+      const meta = await getVaultMeta()
+      if (!meta || !masterKeyRef.current) return false
+      // Verify password
+      const wrappingKey = await deriveKeyFromPassword(password, meta.passwordSalt)
+      await unwrapMasterKey(meta.encryptedMasterKey, meta.masterKeyIV, wrappingKey)
+      // Register biometric
+      const result = await registerBiometric('trellis-user')
+      if (!result) return false
+      // Wrap master key with PRF key
+      const { encryptedMasterKey: prfEnc, masterKeyIV: prfIV } = await wrapMasterKey(
+        masterKeyRef.current,
+        result.prfKey
+      )
+      // Update vault meta
+      await saveVaultMeta({
+        ...meta,
+        authMethod: 'both',
+        prfEncryptedMasterKey: prfEnc,
+        prfMasterKeyIV: prfIV,
+        prfCredentialId: result.credentialId,
+      })
+      setAuthMethod('both')
+      return true
+    } catch {
+      return false
+    }
+  }, [])
+
+  const disableBiometric = useCallback(async (password: string): Promise<boolean> => {
+    try {
+      const meta = await getVaultMeta()
+      if (!meta) return false
+      // Verify password
+      const wrappingKey = await deriveKeyFromPassword(password, meta.passwordSalt)
+      await unwrapMasterKey(meta.encryptedMasterKey, meta.masterKeyIV, wrappingKey)
+      // Remove PRF data from vault meta
+      const updated: VaultMeta = {
+        ...meta,
+        authMethod: 'password',
+      }
+      delete updated.prfEncryptedMasterKey
+      delete updated.prfMasterKeyIV
+      delete updated.prfCredentialId
+      await saveVaultMeta(updated)
+      setAuthMethod('password')
+      return true
+    } catch {
+      return false
+    }
+  }, [])
+
   // Suppress unused variable warning for masterKeyVersion - it's used to trigger re-renders
   void masterKeyVersion
 
@@ -196,8 +279,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         createVault,
         changePassword,
         masterKey: masterKeyRef.current,
-        webAuthnSupported,
+        prfSupported,
         setAutoLockConfig,
+        enableBiometric,
+        disableBiometric,
       }}
     >
       {children}
