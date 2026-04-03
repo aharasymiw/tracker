@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+
+echo "Running pre-commit checks..."
+
+npx oxlint src
+npx prettier --check "src/**/*.{ts,tsx,css}"
+npx vitest run
