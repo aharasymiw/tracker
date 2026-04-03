@@ -101,7 +101,7 @@ export function Onboarding() {
                 icon={<Fingerprint size={20} />}
                 label="Password + biometric"
                 disabled={prfSupported === false}
-                disabledReason="Your device doesn't support biometric unlock"
+                disabledReason="Biometric unlock isn't supported in this browser. Try using Chrome."
               />
             )}
             {prfSupported !== null && (
@@ -111,7 +111,7 @@ export function Onboarding() {
                 icon={<Fingerprint size={20} />}
                 label="Biometric only"
                 disabled={prfSupported === false}
-                disabledReason="Your device doesn't support biometric unlock"
+                disabledReason="Biometric unlock isn't supported in this browser. Try using Chrome."
               />
             )}
           </div>
