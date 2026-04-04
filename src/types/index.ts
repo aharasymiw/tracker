@@ -1,6 +1,5 @@
 export type ConsumptionType = 'flower' | 'vape' | 'edible' | 'concentrate' | 'tincture' | 'topical'
 export type SocialContext = 'solo' | 'social'
-export type AuthMethod = 'password' | 'biometric' | 'both'
 export type VaultState = 'none' | 'locked' | 'unlocked'
 export type Theme = 'light' | 'dark' | 'system'
 
@@ -39,13 +38,9 @@ export interface AppSettings {
 
 export interface VaultMeta {
   version: number
-  authMethod: AuthMethod
-  passwordSalt?: string // hex-encoded
-  encryptedMasterKey?: string // base64-encoded
-  masterKeyIV?: string // base64-encoded
-  prfEncryptedMasterKey?: string
-  prfMasterKeyIV?: string
-  prfCredentialId?: string
+  passwordSalt: string // hex-encoded
+  encryptedMasterKey: string // base64-encoded
+  masterKeyIV: string // base64-encoded
   createdAt: string // ISO date string
 }
 

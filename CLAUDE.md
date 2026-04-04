@@ -29,12 +29,11 @@ npx playwright test  # E2E tests (requires running dev server)
 ### Encryption flow
 
 Password → PBKDF2 (600k iterations, SHA-256) → wrapping key → AES-GCM unwrap → master key in memory.
-Biometric → WebAuthn PRF extension → HKDF → wrapping key → AES-GCM unwrap → master key in memory.
 Master key never stored in plaintext. Cleared from memory on lock.
 
 ### IndexedDB stores (via `idb`)
 
-- `meta` (unencrypted): `{ vault: VaultMeta }` — salt, encrypted master key blob, optional WebAuthn credential ID
+- `meta` (unencrypted): `{ vault: VaultMeta }` — salt, encrypted master key blob
 - `entries` (encrypted): `EncryptedRecord[]` — consumption logs
 - `goals` (encrypted): `EncryptedRecord[]` — targets and intentions
 - `settings` (encrypted): `EncryptedRecord` — theme, auto-lock, intention text
@@ -54,7 +53,6 @@ React Context only. Two root providers in `App.tsx`:
 | File                           | Purpose                                                          |
 | ------------------------------ | ---------------------------------------------------------------- |
 | `src/lib/crypto.ts`            | All WebCrypto operations (PBKDF2, AES-GCM, wrap/unwrap)          |
-| `src/lib/auth.ts`              | WebAuthn PRF registration and authentication                     |
 | `src/lib/db.ts`                | IndexedDB via `idb` — vault meta + encrypted CRUD                |
 | `src/lib/schemas.ts`           | Zod schemas for all data types (validate on both write and read) |
 | `src/types/index.ts`           | TypeScript interfaces                                            |

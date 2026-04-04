@@ -46,7 +46,6 @@ describe('db - vault meta', () => {
 
     const meta = {
       version: 1,
-      authMethod: 'password' as const,
       passwordSalt: 'aabbccdd'.repeat(8), // 64 hex chars
       encryptedMasterKey: 'base64data==',
       masterKeyIV: 'iv==',
