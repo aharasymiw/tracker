@@ -11,7 +11,7 @@ import {
   getHours,
   getDay,
 } from 'date-fns'
-import { useData } from '@/contexts/DataContext'
+import { useData } from '@/hooks/useData'
 import type { LogEntry } from '@/types'
 
 export type TimeRange = 'week' | 'month' | '3months' | 'year'

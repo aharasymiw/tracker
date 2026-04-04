@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
-import { useData } from '@/contexts/DataContext'
+import { useAuth } from '@/hooks/useAuth'
+import { useData } from '@/hooks/useData'
 
 export function AutoLockSync() {
   const { setAutoLockConfig } = useAuth()

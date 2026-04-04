@@ -42,12 +42,3 @@ export function TypeSelector({ value, onChange }: TypeSelectorProps) {
     </div>
   )
 }
-
-export const DEFAULT_UNITS: Record<ConsumptionType, string> = {
-  flower: 'hits',
-  vape: 'puffs',
-  edible: 'mg',
-  concentrate: 'dabs',
-  tincture: 'drops',
-  topical: 'applications',
-}

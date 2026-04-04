@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import { Settings, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth } from '@/hooks/useAuth'
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Log',

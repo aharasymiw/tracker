@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Sun, Moon, Monitor } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useData } from '@/contexts/DataContext'
+import { useData } from '@/hooks/useData'
 import type { Theme } from '@/types'
 
 const OPTIONS: { value: Theme; icon: React.ComponentType<{ size?: number }>; label: string }[] = [

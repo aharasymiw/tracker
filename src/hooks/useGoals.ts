@@ -1,4 +1,4 @@
-import { useData } from '@/contexts/DataContext'
+import { useData } from '@/hooks/useData'
 
 export function useGoals() {
   const { goals, saveGoal, deleteGoal } = useData()

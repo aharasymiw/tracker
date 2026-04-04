@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
-import { TypeSelector, DEFAULT_UNITS } from '@/components/log/TypeSelector'
+import { TypeSelector } from '@/components/log/TypeSelector'
+import { DEFAULT_UNITS } from '@/lib/constants'
 import { AmountStepper } from '@/components/log/AmountStepper'
 import { SocialToggle } from '@/components/log/SocialToggle'
 import { TimePicker } from '@/components/log/TimePicker'

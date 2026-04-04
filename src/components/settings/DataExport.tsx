@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Download, Trash2 } from 'lucide-react'
-import { useData } from '@/contexts/DataContext'
+import { useData } from '@/hooks/useData'
 import { format } from 'date-fns'
 import { clearAllData } from '@/lib/db'
 
