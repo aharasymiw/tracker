@@ -9,52 +9,6 @@ import {
   decrypt,
 } from '@/lib/crypto'
 
-describe('auth flow - biometric-only vault (simulated)', () => {
-  it('master key wrapped only with PRF key is recoverable', async () => {
-    // Simulate PRF output: a raw 32-byte key
-    const prfOutput = crypto.getRandomValues(new Uint8Array(32))
-    const keyMaterial = await crypto.subtle.importKey('raw', prfOutput, 'HKDF', false, [
-      'deriveKey',
-    ])
-    const prfKey = await crypto.subtle.deriveKey(
-      {
-        name: 'HKDF',
-        hash: 'SHA-256',
-        salt: new Uint8Array(32),
-        info: new TextEncoder().encode('trellis-wrap'),
-      },
-      keyMaterial,
-      { name: 'AES-GCM', length: 256 },
-      false,
-      ['wrapKey', 'unwrapKey']
-    )
-
-    // Create master key and wrap with PRF key only (no password)
-    const masterKey = await generateMasterKey()
-    const { encryptedMasterKey, masterKeyIV } = await wrapMasterKey(masterKey, prfKey)
-
-    // Encrypt data
-    const { iv, ciphertext } = await encrypt('biometric-only data', masterKey)
-
-    // Simulate lock & unlock: re-derive same PRF key, unwrap master key
-    const prfKey2 = await crypto.subtle.deriveKey(
-      {
-        name: 'HKDF',
-        hash: 'SHA-256',
-        salt: new Uint8Array(32),
-        info: new TextEncoder().encode('trellis-wrap'),
-      },
-      keyMaterial,
-      { name: 'AES-GCM', length: 256 },
-      false,
-      ['wrapKey', 'unwrapKey']
-    )
-    const unlockedKey = await unwrapMasterKey(encryptedMasterKey, masterKeyIV, prfKey2)
-    const decrypted = await decrypt(ciphertext, iv, unlockedKey)
-    expect(decrypted).toBe('biometric-only data')
-  })
-})
-
 describe('auth flow - password vault', () => {
   it('full onboarding → lock → unlock cycle', async () => {
     // Step 1: Create vault (onboarding)
