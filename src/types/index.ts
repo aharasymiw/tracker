@@ -41,6 +41,8 @@ export interface VaultMeta {
   passwordSalt: string // hex-encoded
   encryptedMasterKey: string // base64-encoded
   masterKeyIV: string // base64-encoded
+  verifyIV?: string // base64-encoded — IV for session key verification
+  verifyCiphertext?: string // base64-encoded — sentinel encrypted with master key
   createdAt: string // ISO date string
 }
 

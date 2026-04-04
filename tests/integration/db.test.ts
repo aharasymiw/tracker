@@ -49,6 +49,8 @@ describe('db - vault meta', () => {
       passwordSalt: 'aabbccdd'.repeat(8), // 64 hex chars
       encryptedMasterKey: 'base64data==',
       masterKeyIV: 'iv==',
+      verifyIV: 'verifyiv==',
+      verifyCiphertext: 'verifyciphertext==',
       createdAt: new Date().toISOString(),
     }
 
