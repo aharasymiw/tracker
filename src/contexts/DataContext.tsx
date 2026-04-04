@@ -1,10 +1,11 @@
-import { createContext, useContext, useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import { useAuth } from './AuthContext'
+import { useAuth } from '@/hooks/useAuth'
 import { encrypt, decrypt } from '@/lib/crypto'
 import { putEncrypted, getEncrypted, getAllEncrypted, deleteEncrypted } from '@/lib/db'
 import { LogEntrySchema, GoalSchema, AppSettingsSchema } from '@/lib/schemas'
 import type { LogEntry, Goal, AppSettings, EncryptedRecord } from '@/types'
+import { DataContext } from '@/hooks/useData'
 
 async function encryptRecord<T>(
   id: string,
@@ -23,25 +24,6 @@ async function decryptRecord<T>(
   const json = await decrypt(record.ciphertext, record.iv, masterKey)
   return parser(JSON.parse(json))
 }
-
-interface DataContextValue {
-  // Entries
-  entries: LogEntry[]
-  addEntry: (entry: Omit<LogEntry, 'id' | 'createdAt' | 'updatedAt'>) => Promise<LogEntry>
-  updateEntry: (id: string, updates: Partial<Omit<LogEntry, 'id' | 'createdAt'>>) => Promise<void>
-  deleteEntry: (id: string) => Promise<void>
-  // Goals
-  goals: Goal[]
-  saveGoal: (goal: Omit<Goal, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Goal>
-  deleteGoal: (id: string) => Promise<void>
-  // Settings
-  settings: AppSettings
-  saveSettings: (settings: Partial<AppSettings>) => Promise<void>
-  // State
-  isLoading: boolean
-}
-
-const DataContext = createContext<DataContextValue | null>(null)
 
 const DEFAULT_SETTINGS: AppSettings = {
   theme: 'system',
@@ -199,10 +181,4 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       {children}
     </DataContext.Provider>
   )
-}
-
-export function useData() {
-  const ctx = useContext(DataContext)
-  if (!ctx) throw new Error('useData must be used within DataProvider')
-  return ctx
 }

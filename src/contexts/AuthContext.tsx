@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { AuthMethod, VaultMeta, VaultState } from '@/types'
 import {
   generateMasterKey,
@@ -14,23 +14,7 @@ import {
   type PRFSupportStatus,
 } from '@/lib/auth'
 import { getVaultMeta, saveVaultMeta } from '@/lib/db'
-
-interface AuthContextValue {
-  vaultState: VaultState
-  authMethod: AuthMethod | null
-  unlock: (password: string) => Promise<boolean>
-  unlockWithBiometric: () => Promise<boolean>
-  lock: () => void
-  createVault: (options: { password?: string; withBiometric?: boolean }) => Promise<void>
-  changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
-  masterKey: CryptoKey | null
-  prfSupported: PRFSupportStatus | null
-  setAutoLockConfig: (minutes: number, stayLoggedIn: boolean) => void
-  enableBiometric: (password: string) => Promise<boolean>
-  disableBiometric: (password: string) => Promise<boolean>
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null)
+import { AuthContext } from '@/hooks/useAuth'
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [vaultState, setVaultState] = useState<VaultState>('none')
@@ -309,10 +293,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       {children}
     </AuthContext.Provider>
   )
-}
-
-export function useAuth() {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
-  return ctx
 }
