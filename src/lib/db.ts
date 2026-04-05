@@ -1,10 +1,59 @@
 import { openDB, type IDBPDatabase } from 'idb'
-import type { VaultMeta, EncryptedRecord } from '@/types'
+import type { AuthPrefs, EncryptedRecord, VaultMeta } from '@/types'
+import { AuthPrefsSchema, VaultMetaSchema } from '@/lib/schemas'
 
 const DB_NAME = 'tracker-vault'
 const DB_VERSION = 1
+const VAULT_META_KEY = 'vault'
+const SESSION_KEY = 'session-key'
+const AUTH_PREFS_KEY = 'auth-prefs'
+
+const DEFAULT_AUTH_PREFS: AuthPrefs = {
+  stayLoggedIn: false,
+  preferredUnlockMethod: 'password',
+}
 
 let dbPromise: Promise<IDBPDatabase> | null = null
+
+interface LegacyVaultMeta {
+  version?: number
+  passwordSalt?: string
+  encryptedMasterKey?: string
+  masterKeyIV?: string
+  verifyIV?: string
+  verifyCiphertext?: string
+  createdAt?: string
+}
+
+function isLegacyVaultMeta(value: unknown): value is LegacyVaultMeta {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const meta = value as LegacyVaultMeta
+  return (
+    typeof meta.passwordSalt === 'string' &&
+    typeof meta.encryptedMasterKey === 'string' &&
+    typeof meta.masterKeyIV === 'string' &&
+    typeof meta.createdAt === 'string'
+  )
+}
+
+function migrateLegacyVaultMeta(meta: LegacyVaultMeta): VaultMeta {
+  const createdAt = meta.createdAt ?? new Date().toISOString()
+  return {
+    version: 2,
+    keySlots: [
+      {
+        id: 'legacy-password-slot',
+        type: 'password',
+        passwordSalt: meta.passwordSalt ?? '',
+        encryptedMasterKey: meta.encryptedMasterKey ?? '',
+        masterKeyIV: meta.masterKeyIV ?? '',
+      },
+    ],
+    verifyIV: meta.verifyIV,
+    verifyCiphertext: meta.verifyCiphertext,
+    createdAt,
+  }
+}
 
 function getDB() {
   if (!dbPromise) {
@@ -33,12 +82,38 @@ function getDB() {
 
 export async function getVaultMeta(): Promise<VaultMeta | undefined> {
   const db = await getDB()
-  return db.get('meta', 'vault')
+  const raw = await db.get('meta', VAULT_META_KEY)
+  const parsed = VaultMetaSchema.safeParse(raw)
+  if (parsed.success) return parsed.data
+
+  if (isLegacyVaultMeta(raw)) {
+    const migrated = migrateLegacyVaultMeta(raw)
+    await saveVaultMeta(migrated)
+    return migrated
+  }
+
+  return undefined
 }
 
 export async function saveVaultMeta(meta: VaultMeta): Promise<void> {
   const db = await getDB()
-  await db.put('meta', meta, 'vault')
+  const parsed = VaultMetaSchema.parse(meta)
+  await db.put('meta', parsed, VAULT_META_KEY)
+}
+
+export async function getAuthPrefs(): Promise<AuthPrefs> {
+  const db = await getDB()
+  const raw = await db.get('meta', AUTH_PREFS_KEY)
+  const parsed = AuthPrefsSchema.safeParse(raw)
+  return parsed.success ? parsed.data : DEFAULT_AUTH_PREFS
+}
+
+export async function saveAuthPrefs(updates: Partial<AuthPrefs>): Promise<AuthPrefs> {
+  const db = await getDB()
+  const current = await getAuthPrefs()
+  const parsed = AuthPrefsSchema.parse({ ...current, ...updates })
+  await db.put('meta', parsed, AUTH_PREFS_KEY)
+  return parsed
 }
 
 export async function clearAllData(): Promise<void> {
@@ -55,17 +130,17 @@ export async function clearAllData(): Promise<void> {
 // Verification is done against VaultMeta.verifyCiphertext, not a self-contained sentinel.
 export async function saveSessionKey(key: CryptoKey): Promise<void> {
   const db = await getDB()
-  await db.put('meta', key, 'session-key')
+  await db.put('meta', key, SESSION_KEY)
 }
 
 export async function getSessionKey(): Promise<CryptoKey | undefined> {
   const db = await getDB()
-  return db.get('meta', 'session-key')
+  return db.get('meta', SESSION_KEY)
 }
 
 export async function clearSessionKey(): Promise<void> {
   const db = await getDB()
-  await db.delete('meta', 'session-key')
+  await db.delete('meta', SESSION_KEY)
 }
 
 // Encrypted CRUD — used by DataContext

@@ -51,6 +51,20 @@ export async function deriveKeyFromPassword(
   )
 }
 
+export async function importWrappingKeyMaterial(rawKeyMaterial: BufferSource): Promise<CryptoKey> {
+  const bytes =
+    rawKeyMaterial instanceof ArrayBuffer
+      ? rawKeyMaterial
+      : rawKeyMaterial.buffer.slice(
+          rawKeyMaterial.byteOffset,
+          rawKeyMaterial.byteOffset + rawKeyMaterial.byteLength
+        )
+  return crypto.subtle.importKey('raw', bytes, { name: 'AES-GCM', length: 256 }, false, [
+    'wrapKey',
+    'unwrapKey',
+  ])
+}
+
 export async function wrapMasterKey(
   masterKey: CryptoKey,
   wrappingKey: CryptoKey
@@ -82,6 +96,22 @@ export async function unwrapMasterKey(
   )
 }
 
+export async function unwrapMasterKeyExtractable(
+  encryptedMasterKey: string,
+  masterKeyIV: string,
+  unwrappingKey: CryptoKey
+): Promise<CryptoKey> {
+  return crypto.subtle.unwrapKey(
+    'raw',
+    base64ToBuf(encryptedMasterKey),
+    unwrappingKey,
+    { name: 'AES-GCM', iv: base64ToBuf(masterKeyIV) },
+    { name: 'AES-GCM', length: 256 },
+    true,
+    ['encrypt', 'decrypt']
+  )
+}
+
 export async function rewrapMasterKey(
   encryptedMasterKey: string,
   masterKeyIV: string,
@@ -89,14 +119,10 @@ export async function rewrapMasterKey(
   newWrappingKey: CryptoKey
 ): Promise<{ encryptedMasterKey: string; masterKeyIV: string }> {
   // Unwrap as extractable so wrapKey can read the raw bytes
-  const extractableKey = await crypto.subtle.unwrapKey(
-    'raw',
-    base64ToBuf(encryptedMasterKey),
-    oldWrappingKey,
-    { name: 'AES-GCM', iv: base64ToBuf(masterKeyIV) },
-    { name: 'AES-GCM', length: 256 },
-    true,
-    ['encrypt', 'decrypt']
+  const extractableKey = await unwrapMasterKeyExtractable(
+    encryptedMasterKey,
+    masterKeyIV,
+    oldWrappingKey
   )
   return wrapMasterKey(extractableKey, newWrappingKey)
 }

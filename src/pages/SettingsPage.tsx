@@ -11,13 +11,25 @@ import { useState } from 'react'
 
 export default function SettingsPage() {
   const { settings, saveSettings } = useData()
-  const { changePassword } = useAuth()
+  const {
+    changePassword,
+    stayLoggedIn,
+    setStayLoggedIn,
+    hasPasskey,
+    passkeySupport,
+    addPasskey,
+    removePasskey,
+  } = useAuth()
   const [changingPw, setChangingPw] = useState(false)
   const [oldPw, setOldPw] = useState('')
   const [newPw, setNewPw] = useState('')
   const [pwError, setPwError] = useState('')
   const [pwSuccess, setPwSuccess] = useState(false)
   const [savingPw, setSavingPw] = useState(false)
+  const [passkeyPassword, setPasskeyPassword] = useState('')
+  const [passkeyBusy, setPasskeyBusy] = useState(false)
+  const [passkeyError, setPasskeyError] = useState('')
+  const [passkeySuccess, setPasskeySuccess] = useState('')
 
   const handleAutoLockChange = async (vals: number | readonly number[]) => {
     const value = Array.isArray(vals) ? vals[0] : typeof vals === 'number' ? vals : vals[0]
@@ -44,6 +56,59 @@ export default function SettingsPage() {
     }
   }
 
+  const handleToggleStayLoggedIn = async (checked: boolean) => {
+    await setStayLoggedIn(checked)
+  }
+
+  const handleAddPasskey = async () => {
+    if (!passkeyPassword) {
+      setPasskeyError('Enter your recovery password to continue')
+      return
+    }
+    setPasskeyBusy(true)
+    setPasskeyError('')
+    setPasskeySuccess('')
+    try {
+      await addPasskey(passkeyPassword)
+      setPasskeyPassword('')
+      setPasskeySuccess(hasPasskey ? 'Passkey updated successfully' : 'Passkey added successfully')
+      setTimeout(() => setPasskeySuccess(''), 3000)
+    } catch (err) {
+      setPasskeyError(
+        err instanceof Error && err.message
+          ? err.message
+          : 'Fingerprint / Face ID could not be set up'
+      )
+    } finally {
+      setPasskeyBusy(false)
+    }
+  }
+
+  const handleRemovePasskey = async () => {
+    setPasskeyBusy(true)
+    setPasskeyError('')
+    setPasskeySuccess('')
+    try {
+      await removePasskey()
+      setPasskeySuccess('Passkey removed successfully')
+      setTimeout(() => setPasskeySuccess(''), 3000)
+    } catch (err) {
+      setPasskeyError(
+        err instanceof Error && err.message ? err.message : 'Passkey could not be removed'
+      )
+    } finally {
+      setPasskeyBusy(false)
+    }
+  }
+
+  const passkeyStatus = hasPasskey
+    ? 'Set up on this device'
+    : passkeySupport === 'available'
+      ? 'Available on this device'
+      : passkeySupport === 'checking'
+        ? 'Checking device support…'
+        : 'Not available on this device'
+
   return (
     <div className="flex flex-col gap-4 p-4">
       {/* Theme */}
@@ -61,14 +126,9 @@ export default function SettingsPage() {
         </p>
         <div className="flex justify-between items-center">
           <Label className="text-sm">Stay logged in</Label>
-          <Switch
-            checked={settings.stayLoggedIn}
-            onCheckedChange={(checked) => saveSettings({ stayLoggedIn: checked })}
-          />
+          <Switch checked={stayLoggedIn} onCheckedChange={handleToggleStayLoggedIn} />
         </div>
-        <div
-          className={`space-y-2 ${settings.stayLoggedIn ? 'opacity-40 pointer-events-none' : ''}`}
-        >
+        <div className={`space-y-2 ${stayLoggedIn ? 'opacity-40 pointer-events-none' : ''}`}>
           <div className="flex justify-between items-center">
             <Label className="text-sm">Auto-lock after {settings.autoLockMinutes} minutes</Label>
           </div>
@@ -79,6 +139,47 @@ export default function SettingsPage() {
             max={60}
             step={1}
           />
+        </div>
+
+        <div className="space-y-2 rounded-lg border bg-background/60 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="space-y-1">
+              <Label className="text-sm">Fingerprint / Face ID</Label>
+              <p className="text-xs text-muted-foreground">{passkeyStatus}</p>
+            </div>
+          </div>
+
+          {passkeySupport === 'available' && (
+            <div className="space-y-2">
+              <Input
+                type="password"
+                placeholder="Recovery password"
+                value={passkeyPassword}
+                onChange={(e) => setPasskeyPassword(e.target.value)}
+              />
+              <Button
+                size="sm"
+                onClick={handleAddPasskey}
+                disabled={passkeyBusy || !passkeyPassword}
+              >
+                {hasPasskey ? 'Re-enroll' : 'Add'}
+              </Button>
+            </div>
+          )}
+
+          {hasPasskey && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRemovePasskey}
+              disabled={passkeyBusy}
+            >
+              Remove fingerprint / Face ID
+            </Button>
+          )}
+
+          {passkeyError && <p className="text-xs text-destructive">{passkeyError}</p>}
+          {passkeySuccess && <p className="text-xs text-primary">{passkeySuccess}</p>}
         </div>
 
         {/* Change password */}
