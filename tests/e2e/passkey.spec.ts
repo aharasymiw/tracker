@@ -10,9 +10,8 @@ type CapabilityMode = 'confirmed' | 'tentative'
 
 function makeCredentialFixtures() {
   const credentialId = Buffer.from('trellis-passkey-credential').toString('base64url')
-  const prfOutput = Buffer.alloc(32, 7).toString('base64url')
 
-  return { credentialId, prfOutput }
+  return { credentialId }
 }
 
 async function installPasskeyHarness(
@@ -22,7 +21,7 @@ async function installPasskeyHarness(
   const fixtures = makeCredentialFixtures()
 
   await page.context().addInitScript(
-    ({ credentialId, prfOutput, capabilityMode }) => {
+    ({ credentialId, capabilityMode }) => {
       const base64UrlToBuffer = (value: string) => {
         const normalized = value.replace(/-/g, '+').replace(/_/g, '/')
         const padding = '='.repeat((4 - (normalized.length % 4)) % 4)
@@ -34,29 +33,52 @@ async function installPasskeyHarness(
         return bytes.buffer
       }
 
+      const toArrayBuffer = (value) => {
+        if (value instanceof ArrayBuffer) return value.slice(0)
+        return value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength)
+      }
+
+      let storedLargeBlob = null
+
       const createCredential = () => ({
         rawId: base64UrlToBuffer(credentialId),
         id: credentialId,
         type: 'public-key',
+        response: {
+          getTransports: () => ['internal'],
+        },
         getClientExtensionResults: () => ({
-          prf: {
-            enabled: true,
+          largeBlob: {
+            supported: true,
           },
         }),
       })
 
-      const getCredential = () => ({
-        rawId: base64UrlToBuffer(credentialId),
-        id: credentialId,
-        type: 'public-key',
-        getClientExtensionResults: () => ({
-          prf: {
-            results: {
-              first: base64UrlToBuffer(prfOutput),
-            },
-          },
-        }),
-      })
+      const getCredential = (request) => {
+        const largeBlob = request?.publicKey?.extensions?.largeBlob
+        if (largeBlob?.write !== undefined) {
+          storedLargeBlob = toArrayBuffer(largeBlob.write)
+          return {
+            rawId: base64UrlToBuffer(credentialId),
+            id: credentialId,
+            type: 'public-key',
+            getClientExtensionResults: () => ({
+              largeBlob: {
+                written: true,
+              },
+            }),
+          }
+        }
+
+        return {
+          rawId: base64UrlToBuffer(credentialId),
+          id: credentialId,
+          type: 'public-key',
+          getClientExtensionResults: () => ({
+            largeBlob: storedLargeBlob ? { blob: storedLargeBlob } : {},
+          }),
+        }
+      }
 
       class MockPublicKeyCredential {}
       Object.defineProperty(
@@ -73,7 +95,7 @@ async function installPasskeyHarness(
           ? {
               value: async () => ({
                 passkeyPlatformAuthenticator: true,
-                'extension:prf': true,
+                'extension:largeBlob': true,
               }),
             }
           : {
@@ -90,7 +112,7 @@ async function installPasskeyHarness(
 
       const credentials = {
         create: async () => createCredential(),
-        get: async () => getCredential(),
+        get: async (request) => getCredential(request),
       }
 
       try {
@@ -120,7 +142,6 @@ async function enableVirtualAuthenticator(page: import('@playwright/test').Page)
       hasUserVerification: true,
       isUserVerified: true,
       automaticPresenceSimulation: true,
-      hasPrf: true,
     })
   } catch {
     // Best-effort only. The deterministic WebAuthn harness below still exercises the app.

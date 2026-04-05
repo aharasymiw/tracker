@@ -3,13 +3,15 @@ import { importWrappingKeyMaterial, wrapMasterKey, unwrapMasterKey } from '@/lib
 export type PasskeySupportReason =
   | 'unsupported-browser'
   | 'no-platform-authenticator'
-  | 'missing-prf'
+  | 'missing-largeblob'
   | 'invalid-origin'
 type PasskeySupportStatus = 'unsupported' | 'tentative' | 'available'
-type PasskeyPrfSupport = 'unknown' | 'supported' | 'unsupported'
+type PasskeyStorageSupport = 'unknown' | 'supported' | 'unsupported'
 
-const PRF_EXTENSION_REQUIRED_MESSAGE =
-  'Passkeys are available here, but this browser or device does not expose the WebAuthn PRF extension Trellis needs.'
+const LARGE_BLOB_REQUIRED_MESSAGE =
+  'Passkeys are available here, but this browser or device cannot store the secure unlock data Trellis needs.'
+const LARGE_BLOB_RECOVERY_MESSAGE =
+  'Fingerprint / Face ID on this device needs to be set up again. Unlock with your recovery password, then re-enroll fingerprint / Face ID.'
 const INVALID_ORIGIN_MESSAGE =
   'Passkeys require HTTPS or http://localhost. IP addresses like 127.0.0.1 and LAN URLs cannot create passkeys.'
 
@@ -17,11 +19,11 @@ export type PasskeySupport = {
   status: PasskeySupportStatus
   supported: boolean
   platformAuthenticator: boolean
-  prf: PasskeyPrfSupport
+  largeBlob: PasskeyStorageSupport
   reason?: PasskeySupportReason
 }
 
-export type PasskeyErrorCode = 'unsupported' | 'cancelled' | 'failed'
+export type PasskeyErrorCode = 'unsupported' | 'cancelled' | 'failed' | 'recovery-required'
 
 export class PasskeyError extends Error {
   code: PasskeyErrorCode
@@ -40,8 +42,8 @@ export function isPasskeyError(error: unknown): error is PasskeyError {
   return error instanceof PasskeyError
 }
 
-export async function derivePasskeyWrappingKey(prfOutput: BufferSource): Promise<CryptoKey> {
-  return importWrappingKeyMaterial(prfOutput)
+export async function derivePasskeyWrappingKey(rawKeyMaterial: BufferSource): Promise<CryptoKey> {
+  return importWrappingKeyMaterial(rawKeyMaterial)
 }
 
 export interface PasskeySlotRegistrationOptions {
@@ -56,26 +58,31 @@ export interface PasskeySlot {
   credentialId: string
   encryptedMasterKey: string
   masterKeyIV: string
-  prfInput: string
   rpId?: string
+  transports?: string[]
   createdAt: string
 }
 
 export type PasskeySlotInput = PasskeySlot
 
+type LargeBlobExtensionResult = {
+  supported?: boolean
+  written?: boolean
+  blob?: ArrayBuffer
+}
+
 type PasskeyCredentialWithExtensions = PublicKeyCredential & {
+  response?: AuthenticatorResponse & {
+    getTransports?: () => string[]
+  }
   getClientExtensionResults: () => {
-    prf?: {
-      enabled?: boolean
-      results?: {
-        first?: ArrayBuffer
-      }
-    }
+    largeBlob?: LargeBlobExtensionResult
   }
 }
 
 type PublicKeyCredentialConstructorWithCapabilities = typeof PublicKeyCredential & {
   getClientCapabilities?: () => Promise<Record<string, boolean> | undefined>
+  signalUnknownCredential?: (options: { credentialId: string; rpId: string }) => Promise<void>
 }
 
 function isIpv4Host(hostname: string): boolean {
@@ -121,14 +128,16 @@ function base64UrlToBuffer(value: string): ArrayBuffer {
 }
 
 function getCredentialExtensions(result: PublicKeyCredential): {
-  prf?: {
-    enabled?: boolean
-    results?: {
-      first?: ArrayBuffer
-    }
-  }
+  largeBlob?: LargeBlobExtensionResult
 } {
   return (result as PasskeyCredentialWithExtensions).getClientExtensionResults()
+}
+
+function getCredentialTransports(result: PublicKeyCredential): string[] | undefined {
+  const response = (result as PasskeyCredentialWithExtensions).response
+  if (!response || typeof response.getTransports !== 'function') return undefined
+  const transports = response.getTransports()
+  return Array.isArray(transports) && transports.length > 0 ? transports : undefined
 }
 
 function normalizeError(error: unknown): PasskeyError {
@@ -165,7 +174,7 @@ async function readSupportDetails(): Promise<Omit<PasskeySupport, 'supported' | 
     return {
       status: 'unsupported',
       platformAuthenticator: false,
-      prf: 'unknown',
+      largeBlob: 'unknown',
     }
   }
 
@@ -185,23 +194,27 @@ async function readSupportDetails(): Promise<Omit<PasskeySupport, 'supported' | 
     return {
       status: 'unsupported',
       platformAuthenticator: false,
-      prf: 'unknown',
+      largeBlob: 'unknown',
     }
   }
 
-  let prf: PasskeyPrfSupport = 'unknown'
+  let largeBlob: PasskeyStorageSupport = 'unknown'
 
-  if (capabilities && Object.hasOwn(capabilities, 'extension:prf')) {
-    prf = capabilities['extension:prf'] ? 'supported' : 'unsupported'
+  if (capabilities && Object.hasOwn(capabilities, 'extension:largeBlob')) {
+    largeBlob = capabilities['extension:largeBlob'] ? 'supported' : 'unsupported'
   }
 
   const status: PasskeySupportStatus =
-    prf === 'supported' ? 'available' : prf === 'unsupported' ? 'unsupported' : 'tentative'
+    largeBlob === 'supported'
+      ? 'available'
+      : largeBlob === 'unsupported'
+        ? 'unsupported'
+        : 'tentative'
 
   return {
     status,
     platformAuthenticator: true,
-    prf,
+    largeBlob,
   }
 }
 
@@ -212,7 +225,7 @@ export async function getPasskeySupport(): Promise<PasskeySupport> {
       status: 'unsupported',
       supported: false,
       platformAuthenticator: false,
-      prf: 'unknown',
+      largeBlob: 'unknown',
       reason: originIssue,
     }
   }
@@ -224,9 +237,9 @@ export async function getPasskeySupport(): Promise<PasskeySupport> {
       status: 'unsupported',
       supported: false,
       platformAuthenticator: false,
-      prf: details.prf,
+      largeBlob: details.largeBlob,
       reason:
-        details.prf === 'unknown' &&
+        details.largeBlob === 'unknown' &&
         (!globalThis.PublicKeyCredential ||
           !navigator.credentials ||
           typeof navigator.credentials.create !== 'function' ||
@@ -236,13 +249,13 @@ export async function getPasskeySupport(): Promise<PasskeySupport> {
     }
   }
 
-  if (details.prf === 'unsupported') {
+  if (details.largeBlob === 'unsupported') {
     return {
       status: 'unsupported',
       supported: false,
       platformAuthenticator: true,
-      prf: 'unsupported',
-      reason: 'missing-prf',
+      largeBlob: 'unsupported',
+      reason: 'missing-largeblob',
     }
   }
 
@@ -250,7 +263,7 @@ export async function getPasskeySupport(): Promise<PasskeySupport> {
     status: details.status,
     supported: details.status !== 'unsupported',
     platformAuthenticator: true,
-    prf: details.prf,
+    largeBlob: details.largeBlob,
   }
 }
 
@@ -258,8 +271,8 @@ function assertPasskeySupport(support: PasskeySupport): void {
   if (support.supported) return
   throw new PasskeyError(
     'unsupported',
-    support.reason === 'missing-prf'
-      ? PRF_EXTENSION_REQUIRED_MESSAGE
+    support.reason === 'missing-largeblob'
+      ? LARGE_BLOB_REQUIRED_MESSAGE
       : support.reason === 'invalid-origin'
         ? INVALID_ORIGIN_MESSAGE
         : support.reason === 'no-platform-authenticator'
@@ -268,36 +281,12 @@ function assertPasskeySupport(support: PasskeySupport): void {
   )
 }
 
-async function getWrappingKeyFromExtensionResult(result: PublicKeyCredential): Promise<{
-  credentialId: string
-  rawId: ArrayBuffer
-  wrappingKey: CryptoKey
-  prfOutput: ArrayBuffer
-}> {
-  const extensionResults = getCredentialExtensions(result)
-  const prfOutput = extensionResults.prf?.results?.first
-
-  if (!prfOutput) {
-    throw new PasskeyError('unsupported', PRF_EXTENSION_REQUIRED_MESSAGE)
-  }
-
-  return {
-    credentialId: bufferToBase64Url(result.rawId),
-    rawId: result.rawId,
-    wrappingKey: await derivePasskeyWrappingKey(prfOutput),
-    prfOutput,
-  }
-}
-
 function buildRegistrationOptions(
-  prfInput: BufferSource,
   options: PasskeySlotRegistrationOptions
 ): PublicKeyCredentialCreationOptions & {
   extensions: {
-    prf: {
-      eval: {
-        first: BufferSource
-      }
+    largeBlob: {
+      support: 'required'
     }
   }
 } {
@@ -318,30 +307,26 @@ function buildRegistrationOptions(
     ],
     authenticatorSelection: {
       authenticatorAttachment: 'platform',
-      residentKey: 'preferred',
+      residentKey: 'required',
       userVerification: 'required',
     },
     timeout: options.timeout ?? 60_000,
     extensions: {
-      prf: {
-        eval: {
-          first: prfInput,
-        },
+      largeBlob: {
+        support: 'required',
       },
     },
   }
 }
 
-function buildAuthenticationOptions(
+function buildWriteAuthenticationOptions(
   credentialId: string,
-  prfInput: BufferSource,
+  deviceUnlockKey: BufferSource,
   options: PasskeySlotRegistrationOptions
 ): PublicKeyCredentialRequestOptions & {
   extensions: {
-    prf: {
-      eval: {
-        first: BufferSource
-      }
+    largeBlob: {
+      write: BufferSource
     }
   }
 } {
@@ -357,12 +342,47 @@ function buildAuthenticationOptions(
     timeout: options.timeout ?? 60_000,
     ...(options.rpId ? { rpId: options.rpId } : {}),
     extensions: {
-      prf: {
-        eval: {
-          first: prfInput,
-        },
+      largeBlob: {
+        write: deviceUnlockKey,
       },
     },
+  }
+}
+
+function buildReadAuthenticationOptions(
+  credentialId: string,
+  options: PasskeySlotRegistrationOptions
+): PublicKeyCredentialRequestOptions & {
+  extensions: {
+    largeBlob: {
+      read: true
+    }
+  }
+} {
+  return {
+    challenge: randomBytes(32),
+    allowCredentials: [
+      {
+        type: 'public-key',
+        id: base64UrlToBuffer(credentialId),
+      },
+    ],
+    userVerification: 'required',
+    timeout: options.timeout ?? 60_000,
+    ...(options.rpId ? { rpId: options.rpId } : {}),
+    extensions: {
+      largeBlob: {
+        read: true,
+      },
+    },
+  }
+}
+
+async function importStoredUnlockKey(blob: ArrayBuffer): Promise<CryptoKey> {
+  try {
+    return await derivePasskeyWrappingKey(blob)
+  } catch (error) {
+    throw new PasskeyError('recovery-required', LARGE_BLOB_RECOVERY_MESSAGE, error)
   }
 }
 
@@ -373,8 +393,8 @@ export async function createPasskeySlot(
   const support = await getPasskeySupport()
   assertPasskeySupport(support)
 
-  const prfInput = bufferToBase64Url(randomBytes(32).buffer)
-  const publicKey = buildRegistrationOptions(base64UrlToBuffer(prfInput), options)
+  const deviceUnlockKey = randomBytes(32)
+  const publicKey = buildRegistrationOptions(options)
 
   try {
     const credential = (await navigator.credentials.create({
@@ -386,27 +406,33 @@ export async function createPasskeySlot(
     }
 
     const registrationExtensions = getCredentialExtensions(credential)
-    if (registrationExtensions.prf?.enabled === false) {
-      throw new PasskeyError('unsupported', PRF_EXTENSION_REQUIRED_MESSAGE)
+    if (registrationExtensions.largeBlob?.supported !== true) {
+      throw new PasskeyError('unsupported', LARGE_BLOB_REQUIRED_MESSAGE)
     }
 
     const credentialId = bufferToBase64Url(credential.rawId)
-    const assertion = (await navigator.credentials.get({
-      publicKey: buildAuthenticationOptions(credentialId, base64UrlToBuffer(prfInput), options),
+    const writeAssertion = (await navigator.credentials.get({
+      publicKey: buildWriteAuthenticationOptions(credentialId, deviceUnlockKey, options),
     })) as PublicKeyCredential | null
 
-    if (!assertion) {
+    if (!writeAssertion) {
       throw new PasskeyError('cancelled', 'Passkey authentication was cancelled')
     }
 
-    const wrapped = await getWrappingKeyFromExtensionResult(assertion)
-    const { encryptedMasterKey, masterKeyIV } = await wrapMasterKey(masterKey, wrapped.wrappingKey)
+    const writeExtensions = getCredentialExtensions(writeAssertion)
+    if (writeExtensions.largeBlob?.written !== true) {
+      throw new PasskeyError('recovery-required', LARGE_BLOB_RECOVERY_MESSAGE)
+    }
+
+    const wrappingKey = await derivePasskeyWrappingKey(deviceUnlockKey)
+    const { encryptedMasterKey, masterKeyIV } = await wrapMasterKey(masterKey, wrappingKey)
+
     return {
       credentialId,
       encryptedMasterKey,
       masterKeyIV,
-      prfInput,
       rpId: options.rpId,
+      transports: getCredentialTransports(credential),
       createdAt: new Date().toISOString(),
     }
   } catch (error) {
@@ -418,11 +444,7 @@ export async function unlockWithPasskeySlot(slot: PasskeySlotInput): Promise<Cry
   const support = await getPasskeySupport()
   assertPasskeySupport(support)
 
-  const publicKey = buildAuthenticationOptions(
-    slot.credentialId,
-    base64UrlToBuffer(slot.prfInput),
-    slot
-  )
+  const publicKey = buildReadAuthenticationOptions(slot.credentialId, slot)
 
   try {
     const credential = (await navigator.credentials.get({
@@ -433,10 +455,40 @@ export async function unlockWithPasskeySlot(slot: PasskeySlotInput): Promise<Cry
       throw new PasskeyError('cancelled', 'Passkey authentication was cancelled')
     }
 
-    const wrapped = await getWrappingKeyFromExtensionResult(credential)
-    return unwrapMasterKey(slot.encryptedMasterKey, slot.masterKeyIV, wrapped.wrappingKey)
+    const blob = getCredentialExtensions(credential).largeBlob?.blob
+
+    if (!blob || blob.byteLength === 0) {
+      throw new PasskeyError('recovery-required', LARGE_BLOB_RECOVERY_MESSAGE)
+    }
+
+    const wrappingKey = await importStoredUnlockKey(blob)
+
+    try {
+      return await unwrapMasterKey(slot.encryptedMasterKey, slot.masterKeyIV, wrappingKey)
+    } catch (error) {
+      throw new PasskeyError('recovery-required', LARGE_BLOB_RECOVERY_MESSAGE, error)
+    }
   } catch (error) {
     throw normalizeError(error)
+  }
+}
+
+export async function forgetPasskeyCredential(
+  slot: Pick<PasskeySlotInput, 'credentialId' | 'rpId'>
+): Promise<void> {
+  const constructor = globalThis.PublicKeyCredential as
+    | PublicKeyCredentialConstructorWithCapabilities
+    | undefined
+
+  if (!constructor || typeof constructor.signalUnknownCredential !== 'function') return
+
+  try {
+    await constructor.signalUnknownCredential({
+      credentialId: slot.credentialId,
+      rpId: slot.rpId ?? window.location.hostname,
+    })
+  } catch {
+    // Ignore cleanup errors — local unlink already succeeded.
   }
 }
 

@@ -112,8 +112,8 @@ export default function SettingsPage() {
           ? 'Checking device support…'
           : passkeySupportReason === 'invalid-origin'
             ? 'Requires HTTPS or http://localhost'
-            : passkeySupportReason === 'missing-prf'
-              ? 'This browser does not expose the PRF extension Trellis needs'
+            : passkeySupportReason === 'missing-largeblob'
+              ? 'This browser or device cannot store the secure unlock data Trellis needs'
               : 'Not available on this device'
 
   return (

@@ -31,6 +31,7 @@ import {
 } from '@/lib/db'
 import {
   createPasskeySlot,
+  forgetPasskeyCredential,
   getPasskeySupport,
   isPasskeyError,
   type PasskeySupportReason,
@@ -203,7 +204,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         masterKey
       )
       const meta: VaultMeta = {
-        version: 2,
+        version: 3,
         keySlots: [passwordSlot],
         verifyIV,
         verifyCiphertext,
@@ -233,18 +234,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const passkeySlot: PasskeyKeySlot = {
         id: 'passkey-slot',
         type: 'passkey',
+        storage: 'largeBlob',
         credentialId: enrollment.credentialId,
         encryptedMasterKey: enrollment.encryptedMasterKey,
         masterKeyIV: enrollment.masterKeyIV,
-        prfInput: enrollment.prfInput,
         label: 'Fingerprint / Face ID',
+        transports: enrollment.transports,
+        rpId: enrollment.rpId,
       }
       const { iv: verifyIV, ciphertext: verifyCiphertext } = await encrypt(
         SESSION_SENTINEL,
         masterKey
       )
       const meta: VaultMeta = {
-        version: 2,
+        version: 3,
         keySlots: [passwordSlot, passkeySlot],
         verifyIV,
         verifyCiphertext,
@@ -294,7 +297,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const unlockWithPasskey = useCallback(async (): Promise<boolean> => {
     const meta = await getVaultMeta()
     const passkeySlot = getPasskeySlot(meta ?? null)
-    if (!meta || !passkeySlot?.prfInput) return false
+    if (!meta || !passkeySlot) return false
 
     try {
       const masterKey = await unlockWithPasskeySlot(passkeySlot)
@@ -365,11 +368,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const passkeySlot: PasskeyKeySlot = {
         id: getPasskeySlot(meta)?.id ?? 'passkey-slot',
         type: 'passkey',
+        storage: 'largeBlob',
         credentialId: enrollment.credentialId,
         encryptedMasterKey: enrollment.encryptedMasterKey,
         masterKeyIV: enrollment.masterKeyIV,
-        prfInput: enrollment.prfInput,
         label: 'Fingerprint / Face ID',
+        transports: enrollment.transports,
+        rpId: enrollment.rpId,
       }
       const updatedMeta: VaultMeta = {
         ...meta,
@@ -386,6 +391,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const removePasskey = useCallback(async (): Promise<void> => {
     const meta = await getVaultMeta()
     if (!meta) return
+    const passkeySlot = getPasskeySlot(meta)
 
     const updatedMeta: VaultMeta = {
       ...meta,
@@ -395,6 +401,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await saveVaultMeta(updatedMeta)
     syncVaultMeta(updatedMeta)
     await savePrefs({ preferredUnlockMethod: 'password' })
+    if (passkeySlot) {
+      await forgetPasskeyCredential(passkeySlot)
+    }
   }, [savePrefs, syncVaultMeta])
 
   const setStayLoggedIn = useCallback(
@@ -422,7 +431,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           status: 'unsupported',
           supported: false,
           platformAuthenticator: false,
-          prf: 'unknown' as const,
+          largeBlob: 'unknown' as const,
           reason: 'unsupported-browser' as const,
         })),
       ])
@@ -434,13 +443,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!meta) {
         syncVaultMeta(null)
-        syncAuthPrefs(prefs, null)
+        const normalizedPrefs = syncAuthPrefs(prefs, null)
+        if (normalizedPrefs.preferredUnlockMethod !== prefs.preferredUnlockMethod) {
+          await saveAuthPrefs(normalizedPrefs)
+        }
         setVaultState('none')
         return
       }
 
       syncVaultMeta(meta)
-      syncAuthPrefs(prefs, meta)
+      const normalizedPrefs = syncAuthPrefs(prefs, meta)
+      if (normalizedPrefs.preferredUnlockMethod !== prefs.preferredUnlockMethod) {
+        await saveAuthPrefs(normalizedPrefs)
+      }
 
       const sessionKey = await getSessionKey()
       if (cancelled) return
