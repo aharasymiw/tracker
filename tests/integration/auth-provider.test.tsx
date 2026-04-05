@@ -310,6 +310,7 @@ describe('auth provider integration', () => {
 
     await clickButton('add passkey')
     await waitForText('has-passkey', 'true')
+    await waitForText('preferred-unlock-method', 'passkey')
     expect(getText('preferred-unlock-method')).toBe('passkey')
 
     await clickButton('lock')
