@@ -82,6 +82,33 @@ export async function unwrapMasterKey(
   )
 }
 
+export async function rewrapMasterKey(
+  encryptedMasterKey: string,
+  masterKeyIV: string,
+  oldWrappingKey: CryptoKey,
+  newWrappingKey: CryptoKey
+): Promise<{ encryptedMasterKey: string; masterKeyIV: string }> {
+  // Unwrap as extractable so wrapKey can read the raw bytes
+  const extractableKey = await crypto.subtle.unwrapKey(
+    'raw',
+    base64ToBuf(encryptedMasterKey),
+    oldWrappingKey,
+    { name: 'AES-GCM', iv: base64ToBuf(masterKeyIV) },
+    { name: 'AES-GCM', length: 256 },
+    true,
+    ['encrypt', 'decrypt']
+  )
+  return wrapMasterKey(extractableKey, newWrappingKey)
+}
+
+export async function makeNonExtractable(key: CryptoKey): Promise<CryptoKey> {
+  const raw = await crypto.subtle.exportKey('raw', key)
+  return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM', length: 256 }, false, [
+    'encrypt',
+    'decrypt',
+  ])
+}
+
 export async function encrypt(
   data: string,
   masterKey: CryptoKey

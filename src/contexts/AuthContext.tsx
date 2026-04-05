@@ -6,9 +6,21 @@ import {
   deriveKeyFromPassword,
   wrapMasterKey,
   unwrapMasterKey,
+  rewrapMasterKey,
+  makeNonExtractable,
+  encrypt,
+  decrypt,
 } from '@/lib/crypto'
-import { getVaultMeta, saveVaultMeta } from '@/lib/db'
+import {
+  getVaultMeta,
+  saveVaultMeta,
+  getSessionKey,
+  saveSessionKey,
+  clearSessionKey,
+} from '@/lib/db'
 import { AuthContext } from '@/hooks/useAuth'
+
+const SESSION_SENTINEL = 'trellis-session-ok'
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [vaultState, setVaultState] = useState<VaultState>('none')
@@ -16,16 +28,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [masterKeyVersion, setMasterKeyVersion] = useState(0) // force re-renders
   const lockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [autoLockMinutes, setAutoLockMinutes] = useState(5)
-  const [stayLoggedIn, setStayLoggedIn] = useState(false)
+  const [stayLoggedIn, setStayLoggedIn] = useState(() => {
+    try {
+      return localStorage.getItem('trellis-stay-logged-in') === 'true'
+    } catch {
+      return false
+    }
+  })
 
   useEffect(() => {
-    getVaultMeta().then((meta) => {
-      if (meta) {
-        setVaultState('locked')
-      } else {
+    async function init() {
+      const meta = await getVaultMeta()
+      if (!meta) {
         setVaultState('none')
+        return
       }
-    })
+
+      // Try restoring session from persisted key, verified against vault's own tag
+      const sessionKey = await getSessionKey()
+      if (sessionKey && meta.verifyIV && meta.verifyCiphertext) {
+        try {
+          const plaintext = await decrypt(meta.verifyCiphertext, meta.verifyIV, sessionKey)
+          if (plaintext === SESSION_SENTINEL) {
+            masterKeyRef.current = sessionKey
+            setMasterKeyVersion((v) => v + 1)
+            setVaultState('unlocked')
+            return
+          }
+        } catch {
+          // Key doesn't match current vault
+        }
+        await clearSessionKey()
+      }
+
+      setVaultState('locked')
+    }
+    init()
   }, [])
 
   const clearLockTimer = useCallback(() => {
@@ -37,6 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setMasterKeyVersion((v) => v + 1)
     setVaultState('locked')
     clearLockTimer()
+    clearSessionKey()
   }, [clearLockTimer])
 
   const startLockTimer = useCallback(() => {
@@ -62,59 +101,90 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener('visibilitychange', handleVisibility)
   }, [vaultState, startLockTimer, clearLockTimer])
 
-  const unlock = useCallback(async (password: string): Promise<boolean> => {
-    try {
-      const meta = await getVaultMeta()
-      if (!meta?.passwordSalt || !meta.encryptedMasterKey || !meta.masterKeyIV) return false
-      const wrappingKey = await deriveKeyFromPassword(password, meta.passwordSalt)
-      const masterKey = await unwrapMasterKey(
-        meta.encryptedMasterKey,
-        meta.masterKeyIV,
-        wrappingKey
+  const persistKeyIfStayLoggedIn = useCallback(
+    async (key: CryptoKey) => {
+      if (stayLoggedIn) {
+        await saveSessionKey(key)
+      }
+    },
+    [stayLoggedIn]
+  )
+
+  const unlock = useCallback(
+    async (password: string): Promise<boolean> => {
+      try {
+        const meta = await getVaultMeta()
+        if (!meta?.passwordSalt || !meta.encryptedMasterKey || !meta.masterKeyIV) return false
+        const wrappingKey = await deriveKeyFromPassword(password, meta.passwordSalt)
+        const masterKey = await unwrapMasterKey(
+          meta.encryptedMasterKey,
+          meta.masterKeyIV,
+          wrappingKey
+        )
+        // Backfill verification tag for vaults created before this feature
+        if (!meta.verifyIV || !meta.verifyCiphertext) {
+          const { iv: verifyIV, ciphertext: verifyCiphertext } = await encrypt(
+            SESSION_SENTINEL,
+            masterKey
+          )
+          await saveVaultMeta({ ...meta, verifyIV, verifyCiphertext })
+        }
+        masterKeyRef.current = masterKey
+        setMasterKeyVersion((v) => v + 1)
+        setVaultState('unlocked')
+        await persistKeyIfStayLoggedIn(masterKey)
+        return true
+      } catch {
+        return false
+      }
+    },
+    [persistKeyIfStayLoggedIn]
+  )
+
+  const createVault = useCallback(
+    async (password: string): Promise<void> => {
+      const masterKey = await generateMasterKey()
+      const salt = await generateSalt()
+      const wrappingKey = await deriveKeyFromPassword(password, salt)
+      const { encryptedMasterKey, masterKeyIV } = await wrapMasterKey(masterKey, wrappingKey)
+      const { iv: verifyIV, ciphertext: verifyCiphertext } = await encrypt(
+        SESSION_SENTINEL,
+        masterKey
       )
-      masterKeyRef.current = masterKey
+
+      const meta: VaultMeta = {
+        version: 1,
+        passwordSalt: salt,
+        encryptedMasterKey,
+        masterKeyIV,
+        verifyIV,
+        verifyCiphertext,
+        createdAt: new Date().toISOString(),
+      }
+
+      await saveVaultMeta(meta)
+      const usableKey = await makeNonExtractable(masterKey)
+      masterKeyRef.current = usableKey
       setMasterKeyVersion((v) => v + 1)
       setVaultState('unlocked')
-      return true
-    } catch {
-      return false
-    }
-  }, [])
-
-  const createVault = useCallback(async (password: string): Promise<void> => {
-    const masterKey = await generateMasterKey()
-    const salt = await generateSalt()
-    const wrappingKey = await deriveKeyFromPassword(password, salt)
-    const { encryptedMasterKey, masterKeyIV } = await wrapMasterKey(masterKey, wrappingKey)
-
-    const meta: VaultMeta = {
-      version: 1,
-      passwordSalt: salt,
-      encryptedMasterKey,
-      masterKeyIV,
-      createdAt: new Date().toISOString(),
-    }
-
-    await saveVaultMeta(meta)
-    masterKeyRef.current = masterKey
-    setMasterKeyVersion((v) => v + 1)
-    setVaultState('unlocked')
-  }, [])
+      await persistKeyIfStayLoggedIn(usableKey)
+    },
+    [persistKeyIfStayLoggedIn]
+  )
 
   const changePassword = useCallback(
     async (oldPassword: string, newPassword: string): Promise<boolean> => {
       try {
         const meta = await getVaultMeta()
-        if (!meta || !masterKeyRef.current) return false
+        if (!meta) return false
         if (!meta.passwordSalt || !meta.encryptedMasterKey || !meta.masterKeyIV) return false
-        // Verify old password
         const oldWrapping = await deriveKeyFromPassword(oldPassword, meta.passwordSalt)
-        await unwrapMasterKey(meta.encryptedMasterKey, meta.masterKeyIV, oldWrapping)
-        // Re-wrap with new password
         const newSalt = await generateSalt()
         const newWrapping = await deriveKeyFromPassword(newPassword, newSalt)
-        const { encryptedMasterKey, masterKeyIV } = await wrapMasterKey(
-          masterKeyRef.current,
+        const { encryptedMasterKey, masterKeyIV } = await rewrapMasterKey(
+          meta.encryptedMasterKey,
+          meta.masterKeyIV,
+          oldWrapping,
           newWrapping
         )
         await saveVaultMeta({ ...meta, passwordSalt: newSalt, encryptedMasterKey, masterKeyIV })

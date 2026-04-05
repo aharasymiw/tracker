@@ -50,6 +50,24 @@ export async function clearAllData(): Promise<void> {
   })
 }
 
+// Session key persistence — used by AuthContext for "stay logged in"
+// Stores the CryptoKey object directly (structured-cloneable, non-extractable).
+// Verification is done against VaultMeta.verifyCiphertext, not a self-contained sentinel.
+export async function saveSessionKey(key: CryptoKey): Promise<void> {
+  const db = await getDB()
+  await db.put('meta', key, 'session-key')
+}
+
+export async function getSessionKey(): Promise<CryptoKey | undefined> {
+  const db = await getDB()
+  return db.get('meta', 'session-key')
+}
+
+export async function clearSessionKey(): Promise<void> {
+  const db = await getDB()
+  await db.delete('meta', 'session-key')
+}
+
 // Encrypted CRUD — used by DataContext
 export async function putEncrypted(
   store: 'entries' | 'goals' | 'settings',
