@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 import process from 'node:process'
 
-const baseURL = 'http://127.0.0.1:4173'
+const baseURL = 'http://localhost:4173'
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -26,7 +26,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'vp dev --host 127.0.0.1 --port 4173 --strictPort',
+    command: 'vp dev --host localhost --port 4173 --strictPort',
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

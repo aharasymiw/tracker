@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react'
+import type { PasskeySupportReason } from '@/lib/passkey'
 import type { UnlockMethod, VaultState } from '@/types'
 
 export type PasskeySupportState = 'checking' | 'available' | 'tentative' | 'unavailable'
@@ -19,6 +20,7 @@ export interface AuthContextValue {
   setStayLoggedIn: (stayLoggedIn: boolean) => Promise<void>
   hasPasskey: boolean
   passkeySupport: PasskeySupportState
+  passkeySupportReason: PasskeySupportReason | null
   preferredUnlockMethod: UnlockMethod
 }
 

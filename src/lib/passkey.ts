@@ -1,11 +1,17 @@
 import { importWrappingKeyMaterial, wrapMasterKey, unwrapMasterKey } from '@/lib/crypto'
 
-type PasskeySupportReason = 'unsupported-browser' | 'no-platform-authenticator' | 'missing-prf'
+export type PasskeySupportReason =
+  | 'unsupported-browser'
+  | 'no-platform-authenticator'
+  | 'missing-prf'
+  | 'invalid-origin'
 type PasskeySupportStatus = 'unsupported' | 'tentative' | 'available'
 type PasskeyPrfSupport = 'unknown' | 'supported' | 'unsupported'
 
 const PRF_EXTENSION_REQUIRED_MESSAGE =
   'Passkeys are available here, but this browser or device does not expose the WebAuthn PRF extension Trellis needs.'
+const INVALID_ORIGIN_MESSAGE =
+  'Passkeys require HTTPS or http://localhost. IP addresses like 127.0.0.1 and LAN URLs cannot create passkeys.'
 
 export type PasskeySupport = {
   status: PasskeySupportStatus
@@ -72,6 +78,26 @@ type PublicKeyCredentialConstructorWithCapabilities = typeof PublicKeyCredential
   getClientCapabilities?: () => Promise<Record<string, boolean> | undefined>
 }
 
+function isIpv4Host(hostname: string): boolean {
+  const parts = hostname.split('.')
+  return parts.length === 4 && parts.every((part) => /^\d+$/.test(part) && Number(part) <= 255)
+}
+
+function isIpv6Host(hostname: string): boolean {
+  return hostname.includes(':')
+}
+
+export function getPasskeyOriginIssue(
+  hostname: string,
+  isSecureContextValue: boolean
+): PasskeySupportReason | null {
+  if (!isSecureContextValue) return 'invalid-origin'
+  if (!hostname) return 'invalid-origin'
+  if (hostname === 'localhost') return null
+  if (isIpv4Host(hostname) || isIpv6Host(hostname)) return 'invalid-origin'
+  return null
+}
+
 function randomBytes(length: number): Uint8Array {
   const bytes = new Uint8Array(length)
   crypto.getRandomValues(bytes)
@@ -110,6 +136,12 @@ function normalizeError(error: unknown): PasskeyError {
   if (error instanceof DOMException) {
     if (error.name === 'NotAllowedError' || error.name === 'AbortError') {
       return new PasskeyError('cancelled', 'Passkey request was cancelled', error)
+    }
+    if (
+      error.name === 'SecurityError' &&
+      getPasskeyOriginIssue(window.location.hostname, window.isSecureContext) === 'invalid-origin'
+    ) {
+      return new PasskeyError('unsupported', INVALID_ORIGIN_MESSAGE, error)
     }
     if (error.name === 'InvalidStateError' || error.name === 'NotSupportedError') {
       return new PasskeyError('unsupported', 'Passkey is not supported in this browser', error)
@@ -174,6 +206,17 @@ async function readSupportDetails(): Promise<Omit<PasskeySupport, 'supported' | 
 }
 
 export async function getPasskeySupport(): Promise<PasskeySupport> {
+  const originIssue = getPasskeyOriginIssue(window.location.hostname, window.isSecureContext)
+  if (originIssue) {
+    return {
+      status: 'unsupported',
+      supported: false,
+      platformAuthenticator: false,
+      prf: 'unknown',
+      reason: originIssue,
+    }
+  }
+
   const details = await readSupportDetails()
 
   if (details.status === 'unsupported' && !details.platformAuthenticator) {
@@ -217,9 +260,11 @@ function assertPasskeySupport(support: PasskeySupport): void {
     'unsupported',
     support.reason === 'missing-prf'
       ? PRF_EXTENSION_REQUIRED_MESSAGE
-      : support.reason === 'no-platform-authenticator'
-        ? 'This browser or device does not support a platform passkey authenticator'
-        : 'This browser or device does not support platform passkeys'
+      : support.reason === 'invalid-origin'
+        ? INVALID_ORIGIN_MESSAGE
+        : support.reason === 'no-platform-authenticator'
+          ? 'This browser or device does not support a platform passkey authenticator'
+          : 'This browser or device does not support platform passkeys'
   )
 }
 
@@ -267,7 +312,10 @@ function buildRegistrationOptions(
       name: options.userName ?? 'trellis',
       displayName: options.displayName ?? 'Trellis',
     },
-    pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
+    pubKeyCredParams: [
+      { type: 'public-key', alg: -7 },
+      { type: 'public-key', alg: -257 },
+    ],
     authenticatorSelection: {
       authenticatorAttachment: 'platform',
       residentKey: 'preferred',

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vite-plus/test'
 import {
   createPasskeySlot,
   derivePasskeyWrappingKey,
+  getPasskeyOriginIssue,
   getPasskeySupport,
   isPasskeyError,
   PasskeyError,
@@ -98,6 +99,13 @@ beforeEach(() => {
 })
 
 describe('passkey support detection', () => {
+  it('rejects insecure or IP-based origins before probing WebAuthn support', () => {
+    expect(getPasskeyOriginIssue('127.0.0.1', true)).toBe('invalid-origin')
+    expect(getPasskeyOriginIssue('192.168.1.50', true)).toBe('invalid-origin')
+    expect(getPasskeyOriginIssue('localhost', true)).toBeNull()
+    expect(getPasskeyOriginIssue('trellis.example', false)).toBe('invalid-origin')
+  })
+
   it('fails closed when WebAuthn is unavailable', async () => {
     const support = await getPasskeySupport()
     expect(support).toEqual({
