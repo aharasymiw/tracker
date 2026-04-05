@@ -16,7 +16,7 @@ export function Onboarding() {
   const [error, setError] = useState('')
 
   const canSubmit = !loading && password.length >= 8 && password === confirm
-  const passkeyAvailable = passkeySupport === 'available'
+  const passkeyAvailable = passkeySupport === 'available' || passkeySupport === 'tentative'
 
   const validateRecoveryPassword = () => {
     if (password.length < 8) {

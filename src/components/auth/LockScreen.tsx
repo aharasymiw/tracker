@@ -19,7 +19,7 @@ export function LockScreen() {
   const [loadingPasskey, setLoadingPasskey] = useState(false)
   const [error, setError] = useState('')
 
-  const canUsePasskey = hasPasskey && passkeySupport === 'available'
+  const canUsePasskey = hasPasskey && passkeySupport !== 'unavailable'
   const helperText = useMemo(() => {
     if (canUsePasskey) return 'Unlock with your device, or use your recovery password instead.'
     return 'Enter your password to continue'
@@ -36,9 +36,16 @@ export function LockScreen() {
   const handleUnlockPasskey = async () => {
     setLoadingPasskey(true)
     setError('')
-    const ok = await unlockWithPasskey()
-    setLoadingPasskey(false)
-    if (!ok) setError('Fingerprint / Face ID was not accepted')
+    try {
+      const ok = await unlockWithPasskey()
+      if (!ok) setError('Fingerprint / Face ID was not accepted')
+    } catch (err) {
+      setError(
+        err instanceof Error && err.message ? err.message : 'Fingerprint / Face ID was not accepted'
+      )
+    } finally {
+      setLoadingPasskey(false)
+    }
   }
 
   return (

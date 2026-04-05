@@ -1,11 +1,17 @@
 import { importWrappingKeyMaterial, wrapMasterKey, unwrapMasterKey } from '@/lib/crypto'
 
 type PasskeySupportReason = 'unsupported-browser' | 'no-platform-authenticator' | 'missing-prf'
+type PasskeySupportStatus = 'unsupported' | 'tentative' | 'available'
+type PasskeyPrfSupport = 'unknown' | 'supported' | 'unsupported'
+
+const PRF_EXTENSION_REQUIRED_MESSAGE =
+  'Passkeys are available here, but this browser or device does not expose the WebAuthn PRF extension Trellis needs.'
 
 export type PasskeySupport = {
+  status: PasskeySupportStatus
   supported: boolean
   platformAuthenticator: boolean
-  prf: boolean
+  prf: PasskeyPrfSupport
   reason?: PasskeySupportReason
 }
 
@@ -54,6 +60,7 @@ export type PasskeySlotInput = PasskeySlot
 type PasskeyCredentialWithExtensions = PublicKeyCredential & {
   getClientExtensionResults: () => {
     prf?: {
+      enabled?: boolean
       results?: {
         first?: ArrayBuffer
       }
@@ -62,7 +69,7 @@ type PasskeyCredentialWithExtensions = PublicKeyCredential & {
 }
 
 type PublicKeyCredentialConstructorWithCapabilities = typeof PublicKeyCredential & {
-  getClientCapabilities?: () => Promise<{ prf?: boolean } | undefined>
+  getClientCapabilities?: () => Promise<Record<string, boolean> | undefined>
 }
 
 function randomBytes(length: number): Uint8Array {
@@ -89,6 +96,7 @@ function base64UrlToBuffer(value: string): ArrayBuffer {
 
 function getCredentialExtensions(result: PublicKeyCredential): {
   prf?: {
+    enabled?: boolean
     results?: {
       first?: ArrayBuffer
     }
@@ -118,58 +126,88 @@ async function readSupportDetails(): Promise<Omit<PasskeySupport, 'supported' | 
 
   if (
     !constructor ||
-    typeof constructor.isUserVerifyingPlatformAuthenticatorAvailable !== 'function' ||
     !credentials ||
     typeof credentials.create !== 'function' ||
     typeof credentials.get !== 'function'
   ) {
-    return { platformAuthenticator: false, prf: false }
-  }
-
-  const platformAuthenticator = await constructor
-    .isUserVerifyingPlatformAuthenticatorAvailable()
-    .catch(() => false)
-
-  if (!platformAuthenticator) {
-    return { platformAuthenticator: false, prf: false }
+    return {
+      status: 'unsupported',
+      platformAuthenticator: false,
+      prf: 'unknown',
+    }
   }
 
   const capabilities = constructor.getClientCapabilities
     ? await constructor.getClientCapabilities().catch(() => undefined)
     : undefined
-  const prf = Boolean(capabilities?.prf)
 
-  return { platformAuthenticator, prf }
-}
+  const capabilityPlatformAuthenticator = capabilities?.passkeyPlatformAuthenticator
+  const platformAuthenticator =
+    typeof capabilityPlatformAuthenticator === 'boolean'
+      ? capabilityPlatformAuthenticator
+      : typeof constructor.isUserVerifyingPlatformAuthenticatorAvailable === 'function'
+        ? await constructor.isUserVerifyingPlatformAuthenticatorAvailable().catch(() => false)
+        : false
 
-export async function getPasskeySupport(): Promise<PasskeySupport> {
-  const constructor = globalThis.PublicKeyCredential as
-    | PublicKeyCredentialConstructorWithCapabilities
-    | undefined
-  const details = await readSupportDetails()
-
-  if (!constructor || !navigator.credentials || !details.platformAuthenticator) {
+  if (!platformAuthenticator) {
     return {
-      supported: false,
-      platformAuthenticator: details.platformAuthenticator,
-      prf: details.prf,
-      reason: 'unsupported-browser',
+      status: 'unsupported',
+      platformAuthenticator: false,
+      prf: 'unknown',
     }
   }
 
-  if (!details.prf) {
+  let prf: PasskeyPrfSupport = 'unknown'
+
+  if (capabilities && Object.hasOwn(capabilities, 'extension:prf')) {
+    prf = capabilities['extension:prf'] ? 'supported' : 'unsupported'
+  }
+
+  const status: PasskeySupportStatus =
+    prf === 'supported' ? 'available' : prf === 'unsupported' ? 'unsupported' : 'tentative'
+
+  return {
+    status,
+    platformAuthenticator: true,
+    prf,
+  }
+}
+
+export async function getPasskeySupport(): Promise<PasskeySupport> {
+  const details = await readSupportDetails()
+
+  if (details.status === 'unsupported' && !details.platformAuthenticator) {
     return {
+      status: 'unsupported',
+      supported: false,
+      platformAuthenticator: false,
+      prf: details.prf,
+      reason:
+        details.prf === 'unknown' &&
+        (!globalThis.PublicKeyCredential ||
+          !navigator.credentials ||
+          typeof navigator.credentials.create !== 'function' ||
+          typeof navigator.credentials.get !== 'function')
+          ? 'unsupported-browser'
+          : 'no-platform-authenticator',
+    }
+  }
+
+  if (details.prf === 'unsupported') {
+    return {
+      status: 'unsupported',
       supported: false,
       platformAuthenticator: true,
-      prf: false,
+      prf: 'unsupported',
       reason: 'missing-prf',
     }
   }
 
   return {
-    supported: true,
+    status: details.status,
+    supported: details.status !== 'unsupported',
     platformAuthenticator: true,
-    prf: true,
+    prf: details.prf,
   }
 }
 
@@ -178,8 +216,10 @@ function assertPasskeySupport(support: PasskeySupport): void {
   throw new PasskeyError(
     'unsupported',
     support.reason === 'missing-prf'
-      ? 'This browser or device does not support the WebAuthn PRF extension'
-      : 'This browser or device does not support platform passkeys'
+      ? PRF_EXTENSION_REQUIRED_MESSAGE
+      : support.reason === 'no-platform-authenticator'
+        ? 'This browser or device does not support a platform passkey authenticator'
+        : 'This browser or device does not support platform passkeys'
   )
 }
 
@@ -193,10 +233,7 @@ async function getWrappingKeyFromExtensionResult(result: PublicKeyCredential): P
   const prfOutput = extensionResults.prf?.results?.first
 
   if (!prfOutput) {
-    throw new PasskeyError(
-      'unsupported',
-      'The browser did not return PRF output for this passkey credential'
-    )
+    throw new PasskeyError('unsupported', PRF_EXTENSION_REQUIRED_MESSAGE)
   }
 
   return {
@@ -300,10 +337,24 @@ export async function createPasskeySlot(
       throw new PasskeyError('cancelled', 'Passkey registration was cancelled')
     }
 
-    const wrapped = await getWrappingKeyFromExtensionResult(credential)
+    const registrationExtensions = getCredentialExtensions(credential)
+    if (registrationExtensions.prf?.enabled === false) {
+      throw new PasskeyError('unsupported', PRF_EXTENSION_REQUIRED_MESSAGE)
+    }
+
+    const credentialId = bufferToBase64Url(credential.rawId)
+    const assertion = (await navigator.credentials.get({
+      publicKey: buildAuthenticationOptions(credentialId, base64UrlToBuffer(prfInput), options),
+    })) as PublicKeyCredential | null
+
+    if (!assertion) {
+      throw new PasskeyError('cancelled', 'Passkey authentication was cancelled')
+    }
+
+    const wrapped = await getWrappingKeyFromExtensionResult(assertion)
     const { encryptedMasterKey, masterKeyIV } = await wrapMasterKey(masterKey, wrapped.wrappingKey)
     return {
-      credentialId: wrapped.credentialId,
+      credentialId,
       encryptedMasterKey,
       masterKeyIV,
       prfInput,

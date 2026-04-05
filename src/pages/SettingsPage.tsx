@@ -105,9 +105,11 @@ export default function SettingsPage() {
     ? 'Set up on this device'
     : passkeySupport === 'available'
       ? 'Available on this device'
-      : passkeySupport === 'checking'
-        ? 'Checking device support…'
-        : 'Not available on this device'
+      : passkeySupport === 'tentative'
+        ? 'Try on this device'
+        : passkeySupport === 'checking'
+          ? 'Checking device support…'
+          : 'Not available on this device'
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -149,7 +151,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {passkeySupport === 'available' && (
+          {passkeySupport !== 'unavailable' && passkeySupport !== 'checking' && (
             <div className="space-y-2">
               <Input
                 type="password"

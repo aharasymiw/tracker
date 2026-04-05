@@ -29,7 +29,12 @@ import {
   saveSessionKey,
   saveVaultMeta,
 } from '@/lib/db'
-import { createPasskeySlot, getPasskeySupport, unlockWithPasskeySlot } from '@/lib/passkey'
+import {
+  createPasskeySlot,
+  getPasskeySupport,
+  isPasskeyError,
+  unlockWithPasskeySlot,
+} from '@/lib/passkey'
 
 const SESSION_SENTINEL = 'trellis-session-ok'
 const STAY_LOGGED_IN_STORAGE_KEY = 'trellis-stay-logged-in'
@@ -76,9 +81,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [autoLockMinutes, setAutoLockMinutesState] = useState(5)
   const [stayLoggedIn, setStayLoggedInState] = useState(readStayLoggedInCache)
   const [hasPasskey, setHasPasskey] = useState(false)
-  const [passkeySupport, setPasskeySupport] = useState<'checking' | 'available' | 'unavailable'>(
-    'checking'
-  )
+  const [passkeySupport, setPasskeySupport] = useState<
+    'checking' | 'available' | 'tentative' | 'unavailable'
+  >('checking')
   const [preferredUnlockMethod, setPreferredUnlockMethodState] = useState<UnlockMethod>('password')
   const masterKeyRef = useRef<CryptoKey | null>(null)
   const lockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -283,17 +288,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   )
 
   const unlockWithPasskey = useCallback(async (): Promise<boolean> => {
-    try {
-      const meta = await getVaultMeta()
-      const passkeySlot = getPasskeySlot(meta ?? null)
-      if (!meta || !passkeySlot?.prfInput) return false
+    const meta = await getVaultMeta()
+    const passkeySlot = getPasskeySlot(meta ?? null)
+    if (!meta || !passkeySlot?.prfInput) return false
 
+    try {
       const masterKey = await unlockWithPasskeySlot(passkeySlot)
       const verifiedMeta = await ensureVerificationTag(meta, masterKey)
       await finishUnlock(masterKey, 'passkey', verifiedMeta)
       return true
-    } catch {
-      return false
+    } catch (error) {
+      if (isPasskeyError(error) && error.code === 'cancelled') {
+        return false
+      }
+      throw error
     }
   }, [ensureVerificationTag, finishUnlock])
 
@@ -407,15 +415,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         getVaultMeta(),
         getAuthPrefs(),
         getPasskeySupport().catch(() => ({
+          status: 'unsupported',
           supported: false,
           platformAuthenticator: false,
-          prf: false,
+          prf: 'unknown' as const,
         })),
       ])
 
       if (cancelled) return
 
-      setPasskeySupport(support.supported ? 'available' : 'unavailable')
+      setPasskeySupport(support.status)
 
       if (!meta) {
         syncVaultMeta(null)

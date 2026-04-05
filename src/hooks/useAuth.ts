@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react'
 import type { UnlockMethod, VaultState } from '@/types'
 
-export type PasskeySupportState = 'checking' | 'available' | 'unavailable'
+export type PasskeySupportState = 'checking' | 'available' | 'tentative' | 'unavailable'
 
 export interface AuthContextValue {
   vaultState: VaultState

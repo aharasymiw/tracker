@@ -26,16 +26,30 @@ function toBase64Url(buffer: ArrayBuffer): string {
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
 }
 
-function createPasskeyCredential(rawId: ArrayBuffer, prfOutput: ArrayBuffer) {
+function createPasskeyCredential(
+  rawId: ArrayBuffer,
+  {
+    enabled,
+    prfOutput,
+  }: {
+    enabled?: boolean
+    prfOutput?: ArrayBuffer
+  } = {}
+) {
   return {
     rawId,
     id: toBase64Url(rawId),
     type: 'public-key',
     getClientExtensionResults: () => ({
       prf: {
-        results: {
-          first: prfOutput,
-        },
+        ...(enabled === undefined ? {} : { enabled }),
+        ...(prfOutput
+          ? {
+              results: {
+                first: prfOutput,
+              },
+            }
+          : {}),
       },
     }),
   } as PublicKeyCredential
@@ -60,19 +74,27 @@ function installIndexedDbGlobals() {
     IDBVersionChangeEvent as unknown as typeof globalThis.IDBVersionChangeEvent
 }
 
-function installWebAuthnMocks() {
+function installWebAuthnMocks({
+  capabilities = {
+    passkeyPlatformAuthenticator: true,
+    'extension:prf': true,
+  },
+}: {
+  capabilities?: Record<string, boolean>
+} = {}) {
   const rawId = Uint8Array.from([11, 22, 33, 44]).buffer
   const prfOutput = Uint8Array.from([
     4, 8, 15, 16, 23, 42, 44, 55, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75,
     76, 77, 78, 79, 80, 81, 82, 83,
   ]).buffer
-  const credential = createPasskeyCredential(rawId, prfOutput)
+  const registrationCredential = createPasskeyCredential(rawId, { enabled: true })
+  const assertionCredential = createPasskeyCredential(rawId, { prfOutput })
 
   class MockPublicKeyCredential {}
 
   Object.assign(MockPublicKeyCredential, {
     isUserVerifyingPlatformAuthenticatorAvailable: vi.fn().mockResolvedValue(true),
-    getClientCapabilities: vi.fn().mockResolvedValue({ prf: true }),
+    getClientCapabilities: vi.fn().mockResolvedValue(capabilities),
   })
 
   Object.defineProperty(globalThis, 'PublicKeyCredential', {
@@ -83,8 +105,8 @@ function installWebAuthnMocks() {
   Object.defineProperty(navigator, 'credentials', {
     configurable: true,
     value: {
-      create: vi.fn().mockResolvedValue(credential),
-      get: vi.fn().mockResolvedValue(credential),
+      create: vi.fn().mockResolvedValue(registrationCredential),
+      get: vi.fn().mockResolvedValue(assertionCredential),
     },
   })
 }
@@ -256,6 +278,28 @@ describe('auth provider integration', () => {
     await waitForText('vault-state', 'unlocked')
   })
 
+  it('allows passkey enrollment when support is tentative', async () => {
+    installWebAuthnMocks({
+      capabilities: {
+        passkeyPlatformAuthenticator: true,
+      },
+    })
+    mountProviders()
+
+    await waitForText('passkey-support', 'tentative')
+    await clickButton('create passkey vault')
+
+    await waitForText('vault-state', 'unlocked')
+    expect(getText('preferred-unlock-method')).toBe('passkey')
+    expect(getText('has-passkey')).toBe('true')
+
+    await clickButton('lock')
+    await waitForText('vault-state', 'locked')
+
+    await clickButton('unlock with passkey')
+    await waitForText('vault-state', 'unlocked')
+  })
+
   it('adds a passkey to an existing password vault and allows passkey unlock', async () => {
     installWebAuthnMocks()
     mountProviders()
@@ -266,6 +310,7 @@ describe('auth provider integration', () => {
 
     await clickButton('add passkey')
     await waitForText('has-passkey', 'true')
+    await waitForText('preferred-unlock-method', 'passkey')
     expect(getText('preferred-unlock-method')).toBe('passkey')
 
     await clickButton('lock')
