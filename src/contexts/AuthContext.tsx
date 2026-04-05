@@ -28,7 +28,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [masterKeyVersion, setMasterKeyVersion] = useState(0) // force re-renders
   const lockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [autoLockMinutes, setAutoLockMinutes] = useState(5)
-  const [stayLoggedIn, setStayLoggedIn] = useState(false)
+  const [stayLoggedIn, setStayLoggedIn] = useState(() => {
+    try {
+      return localStorage.getItem('trellis-stay-logged-in') === 'true'
+    } catch {
+      return false
+    }
+  })
 
   useEffect(() => {
     async function init() {
