@@ -33,6 +33,7 @@ import {
   createPasskeySlot,
   getPasskeySupport,
   isPasskeyError,
+  type PasskeySupportReason,
   unlockWithPasskeySlot,
 } from '@/lib/passkey'
 
@@ -84,6 +85,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [passkeySupport, setPasskeySupport] = useState<
     'checking' | 'available' | 'tentative' | 'unavailable'
   >('checking')
+  const [passkeySupportReason, setPasskeySupportReason] = useState<PasskeySupportReason | null>(
+    null
+  )
   const [preferredUnlockMethod, setPreferredUnlockMethodState] = useState<UnlockMethod>('password')
   const masterKeyRef = useRef<CryptoKey | null>(null)
   const lockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -419,12 +423,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           supported: false,
           platformAuthenticator: false,
           prf: 'unknown' as const,
+          reason: 'unsupported-browser' as const,
         })),
       ])
 
       if (cancelled) return
 
       setPasskeySupport(support.status)
+      setPasskeySupportReason(support.reason ?? null)
 
       if (!meta) {
         syncVaultMeta(null)
@@ -507,6 +513,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setStayLoggedIn,
         hasPasskey,
         passkeySupport,
+        passkeySupportReason,
         preferredUnlockMethod,
       }}
     >

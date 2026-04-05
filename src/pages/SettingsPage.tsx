@@ -17,6 +17,7 @@ export default function SettingsPage() {
     setStayLoggedIn,
     hasPasskey,
     passkeySupport,
+    passkeySupportReason,
     addPasskey,
     removePasskey,
   } = useAuth()
@@ -109,7 +110,11 @@ export default function SettingsPage() {
         ? 'Try on this device'
         : passkeySupport === 'checking'
           ? 'Checking device support…'
-          : 'Not available on this device'
+          : passkeySupportReason === 'invalid-origin'
+            ? 'Requires HTTPS or http://localhost'
+            : passkeySupportReason === 'missing-prf'
+              ? 'This browser does not expose the PRF extension Trellis needs'
+              : 'Not available on this device'
 
   return (
     <div className="flex flex-col gap-4 p-4">

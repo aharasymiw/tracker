@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import process from 'node:process'
 import { chromium, expect, test } from '@playwright/test'
 
-const BASE_URL = process.env.PLAYWRIGHT_TEST_BASE_URL ?? 'http://127.0.0.1:4173'
+const BASE_URL = process.env.PLAYWRIGHT_TEST_BASE_URL ?? 'http://localhost:4173'
 type CapabilityMode = 'confirmed' | 'tentative'
 
 function makeCredentialFixtures() {
@@ -120,6 +120,7 @@ async function enableVirtualAuthenticator(page: import('@playwright/test').Page)
       hasUserVerification: true,
       isUserVerified: true,
       automaticPresenceSimulation: true,
+      hasPrf: true,
     })
   } catch {
     // Best-effort only. The deterministic WebAuthn harness below still exercises the app.
