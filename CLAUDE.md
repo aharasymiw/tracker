@@ -33,7 +33,7 @@ Master key never stored in plaintext. Cleared from memory on lock.
 
 ### IndexedDB stores (via `idb`)
 
-- `meta` (unencrypted): `{ vault: VaultMeta }` — salt, encrypted master key blob
+- `meta` (unencrypted): `{ vault: VaultMeta, 'session-key': CryptoKey }` — salt, encrypted master key blob, session persistence
 - `entries` (encrypted): `EncryptedRecord[]` — consumption logs
 - `goals` (encrypted): `EncryptedRecord[]` — targets and intentions
 - `settings` (encrypted): `EncryptedRecord` — theme, auto-lock, intention text
@@ -45,7 +45,7 @@ Each read: fetch → AES-GCM decrypt → JSON.parse → Zod validate.
 
 React Context only. Two root providers in `App.tsx`:
 
-1. `AuthContext` — vault state machine (`none` → `locked` → `unlocked`), holds `masterKey: CryptoKey | null` in a ref. Auto-locks on `visibilitychange`.
+1. `AuthContext` — vault state machine (`none` → `locked` → `unlocked`), holds `masterKey: CryptoKey | null` in a ref. Auto-locks on `visibilitychange`. "Stay logged in" persists the non-extractable CryptoKey to IndexedDB and caches the flag in `localStorage['trellis-stay-logged-in']` (written by `DataContext.saveSettings`, read synchronously by AuthContext on init).
 2. `DataContext` — encrypted CRUD; loads/clears data on vault state changes.
 
 ### Key files
@@ -74,7 +74,7 @@ Tailwind v4 CSS-first. Theme tokens defined in `src/index.css` as CSS variables.
 - **Integration** (`tests/integration/`): IndexedDB CRUD with `fake-indexeddb`, auth flow
 - **E2E** (`tests/e2e/`): Playwright on mobile viewports (not yet written — run `npx playwright test` after implementing)
 
-Run `vp test run` for unit + integration tests (37 tests, ~1s).
+Run `vp test run` for unit + integration tests (75 tests, ~1.5s).
 
 ## Deployment
 

@@ -28,7 +28,6 @@ async function decryptRecord<T>(
 const DEFAULT_SETTINGS: AppSettings = {
   theme: 'system',
   autoLockMinutes: 5,
-  stayLoggedIn: false,
 }
 
 const SETTINGS_ID = 'app-settings'
@@ -159,13 +158,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const record = await encryptRecord(SETTINGS_ID, updated, masterKey)
       await putEncrypted('settings', record)
       setSettings(updated)
-      if ('stayLoggedIn' in updates) {
-        try {
-          localStorage.setItem('trellis-stay-logged-in', String(updated.stayLoggedIn))
-        } catch {
-          // Ignore localStorage errors (e.g. private browsing)
-        }
-      }
     },
     [masterKey, settings]
   )

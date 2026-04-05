@@ -1,14 +1,25 @@
 import { createContext, useContext } from 'react'
-import type { VaultState } from '@/types'
+import type { UnlockMethod, VaultState } from '@/types'
+
+export type PasskeySupportState = 'checking' | 'available' | 'unavailable'
 
 export interface AuthContextValue {
   vaultState: VaultState
-  unlock: (password: string) => Promise<boolean>
+  unlockWithPassword: (password: string) => Promise<boolean>
+  unlockWithPasskey: () => Promise<boolean>
   lock: () => void
-  createVault: (password: string) => Promise<void>
+  createVaultWithPassword: (password: string) => Promise<void>
+  createVaultWithPasskey: (recoveryPassword: string) => Promise<void>
   changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
+  addPasskey: (password: string) => Promise<void>
+  removePasskey: () => Promise<void>
   masterKey: CryptoKey | null
-  setAutoLockConfig: (minutes: number, stayLoggedIn: boolean) => void
+  setAutoLockMinutes: (minutes: number) => void
+  stayLoggedIn: boolean
+  setStayLoggedIn: (stayLoggedIn: boolean) => Promise<void>
+  hasPasskey: boolean
+  passkeySupport: PasskeySupportState
+  preferredUnlockMethod: UnlockMethod
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)
