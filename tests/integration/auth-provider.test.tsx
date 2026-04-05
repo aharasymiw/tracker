@@ -26,28 +26,37 @@ function toBase64Url(buffer: ArrayBuffer): string {
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
 }
 
+function toArrayBuffer(value: BufferSource): ArrayBuffer {
+  if (value instanceof ArrayBuffer) return value.slice(0)
+  return value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength)
+}
+
 function createPasskeyCredential(
   rawId: ArrayBuffer,
   {
-    enabled,
-    prfOutput,
+    largeBlobSupported,
+    largeBlobWritten,
+    largeBlobBlob,
   }: {
-    enabled?: boolean
-    prfOutput?: ArrayBuffer
+    largeBlobSupported?: boolean
+    largeBlobWritten?: boolean
+    largeBlobBlob?: ArrayBuffer
   } = {}
 ) {
   return {
     rawId,
     id: toBase64Url(rawId),
     type: 'public-key',
+    response: {
+      getTransports: () => ['internal'],
+    },
     getClientExtensionResults: () => ({
-      prf: {
-        ...(enabled === undefined ? {} : { enabled }),
-        ...(prfOutput
+      largeBlob: {
+        ...(largeBlobSupported === undefined ? {} : { supported: largeBlobSupported }),
+        ...(largeBlobWritten === undefined ? {} : { written: largeBlobWritten }),
+        ...(largeBlobBlob
           ? {
-              results: {
-                first: prfOutput,
-              },
+              blob: largeBlobBlob,
             }
           : {}),
       },
@@ -77,24 +86,20 @@ function installIndexedDbGlobals() {
 function installWebAuthnMocks({
   capabilities = {
     passkeyPlatformAuthenticator: true,
-    'extension:prf': true,
+    'extension:largeBlob': true,
   },
 }: {
   capabilities?: Record<string, boolean>
 } = {}) {
   const rawId = Uint8Array.from([11, 22, 33, 44]).buffer
-  const prfOutput = Uint8Array.from([
-    4, 8, 15, 16, 23, 42, 44, 55, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75,
-    76, 77, 78, 79, 80, 81, 82, 83,
-  ]).buffer
-  const registrationCredential = createPasskeyCredential(rawId, { enabled: true })
-  const assertionCredential = createPasskeyCredential(rawId, { prfOutput })
+  let storedLargeBlob: ArrayBuffer | null = null
 
   class MockPublicKeyCredential {}
 
   Object.assign(MockPublicKeyCredential, {
     isUserVerifyingPlatformAuthenticatorAvailable: vi.fn().mockResolvedValue(true),
     getClientCapabilities: vi.fn().mockResolvedValue(capabilities),
+    signalUnknownCredential: vi.fn().mockResolvedValue(undefined),
   })
 
   Object.defineProperty(globalThis, 'PublicKeyCredential', {
@@ -105,8 +110,32 @@ function installWebAuthnMocks({
   Object.defineProperty(navigator, 'credentials', {
     configurable: true,
     value: {
-      create: vi.fn().mockResolvedValue(registrationCredential),
-      get: vi.fn().mockResolvedValue(assertionCredential),
+      create: vi
+        .fn()
+        .mockResolvedValue(createPasskeyCredential(rawId, { largeBlobSupported: true })),
+      get: vi.fn().mockImplementation(async (request: CredentialRequestOptions) => {
+        const largeBlob = (request.publicKey as PublicKeyCredentialRequestOptions | undefined)
+          ?.extensions?.largeBlob as
+          | {
+              write?: BufferSource
+              read?: boolean
+            }
+          | undefined
+
+        if (largeBlob?.write !== undefined) {
+          storedLargeBlob = toArrayBuffer(largeBlob.write)
+          return createPasskeyCredential(rawId, { largeBlobWritten: true })
+        }
+
+        if (largeBlob?.read) {
+          return createPasskeyCredential(
+            rawId,
+            storedLargeBlob ? { largeBlobBlob: storedLargeBlob } : undefined
+          )
+        }
+
+        return createPasskeyCredential(rawId)
+      }),
     },
   })
 }
@@ -317,6 +346,26 @@ describe('auth provider integration', () => {
     await waitForText('vault-state', 'locked')
 
     await clickButton('unlock with passkey')
+    await waitForText('vault-state', 'unlocked')
+  })
+
+  it('removes a passkey and falls back to password unlock', async () => {
+    installWebAuthnMocks()
+    mountProviders()
+
+    await waitForText('passkey-support', 'available')
+    await clickButton('create passkey vault')
+    await waitForText('vault-state', 'unlocked')
+    await waitForText('has-passkey', 'true')
+
+    await clickButton('remove passkey')
+    await waitForText('has-passkey', 'false')
+    await waitForText('preferred-unlock-method', 'password')
+
+    await clickButton('lock')
+    await waitForText('vault-state', 'locked')
+
+    await clickButton('unlock with password')
     await waitForText('vault-state', 'unlocked')
   })
 

@@ -49,12 +49,13 @@ export const PasswordKeySlotSchema = z.object({
 export const PasskeyKeySlotSchema = z.object({
   id: z.string().min(1),
   type: z.literal('passkey'),
+  storage: z.literal('largeBlob'),
   credentialId: z.string().min(1),
   encryptedMasterKey: z.string().min(1),
   masterKeyIV: z.string().min(1),
   label: z.string().min(1).optional(),
   transports: z.array(z.string().min(1)).optional(),
-  prfInput: z.string().min(1).optional(),
+  rpId: z.string().min(1).optional(),
 })
 
 export const KeySlotSchema = z.discriminatedUnion('type', [
@@ -63,7 +64,7 @@ export const KeySlotSchema = z.discriminatedUnion('type', [
 ])
 
 export const VaultMetaSchema = z.object({
-  version: z.literal(2),
+  version: z.literal(3),
   keySlots: z.array(KeySlotSchema).min(1),
   verifyIV: z.string().min(1).optional(),
   verifyCiphertext: z.string().min(1).optional(),

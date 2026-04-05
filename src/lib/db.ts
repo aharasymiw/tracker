@@ -25,6 +25,34 @@ interface LegacyVaultMeta {
   createdAt?: string
 }
 
+interface LegacyPasswordKeySlotV2 {
+  id?: string
+  type: 'password'
+  passwordSalt?: string
+  encryptedMasterKey?: string
+  masterKeyIV?: string
+}
+
+interface LegacyPasskeyKeySlotV2 {
+  id?: string
+  type: 'passkey'
+  credentialId?: string
+  encryptedMasterKey?: string
+  masterKeyIV?: string
+  label?: string
+  transports?: string[]
+  prfInput?: string
+  rpId?: string
+}
+
+interface LegacyVaultMetaV2 {
+  version: 2
+  keySlots?: Array<LegacyPasswordKeySlotV2 | LegacyPasskeyKeySlotV2>
+  verifyIV?: string
+  verifyCiphertext?: string
+  createdAt?: string
+}
+
 function isLegacyVaultMeta(value: unknown): value is LegacyVaultMeta {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const meta = value as LegacyVaultMeta
@@ -36,10 +64,16 @@ function isLegacyVaultMeta(value: unknown): value is LegacyVaultMeta {
   )
 }
 
+function isLegacyVaultMetaV2(value: unknown): value is LegacyVaultMetaV2 {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const meta = value as LegacyVaultMetaV2
+  return meta.version === 2 && Array.isArray(meta.keySlots) && typeof meta.createdAt === 'string'
+}
+
 function migrateLegacyVaultMeta(meta: LegacyVaultMeta): VaultMeta {
   const createdAt = meta.createdAt ?? new Date().toISOString()
   return {
-    version: 2,
+    version: 3,
     keySlots: [
       {
         id: 'legacy-password-slot',
@@ -49,6 +83,27 @@ function migrateLegacyVaultMeta(meta: LegacyVaultMeta): VaultMeta {
         masterKeyIV: meta.masterKeyIV ?? '',
       },
     ],
+    verifyIV: meta.verifyIV,
+    verifyCiphertext: meta.verifyCiphertext,
+    createdAt,
+  }
+}
+
+function migrateLegacyVaultMetaV2(meta: LegacyVaultMetaV2): VaultMeta {
+  const createdAt = meta.createdAt ?? new Date().toISOString()
+  const passwordSlots = (meta.keySlots ?? [])
+    .filter((slot): slot is LegacyPasswordKeySlotV2 => slot.type === 'password')
+    .map((slot, index) => ({
+      id: slot.id ?? (index === 0 ? 'password-slot' : `password-slot-${index + 1}`),
+      type: 'password' as const,
+      passwordSalt: slot.passwordSalt ?? '',
+      encryptedMasterKey: slot.encryptedMasterKey ?? '',
+      masterKeyIV: slot.masterKeyIV ?? '',
+    }))
+
+  return {
+    version: 3,
+    keySlots: passwordSlots,
     verifyIV: meta.verifyIV,
     verifyCiphertext: meta.verifyCiphertext,
     createdAt,
@@ -88,6 +143,12 @@ export async function getVaultMeta(): Promise<VaultMeta | undefined> {
 
   if (isLegacyVaultMeta(raw)) {
     const migrated = migrateLegacyVaultMeta(raw)
+    await saveVaultMeta(migrated)
+    return migrated
+  }
+
+  if (isLegacyVaultMetaV2(raw)) {
+    const migrated = migrateLegacyVaultMetaV2(raw)
     await saveVaultMeta(migrated)
     return migrated
   }

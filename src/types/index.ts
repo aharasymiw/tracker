@@ -47,12 +47,13 @@ export interface PasswordKeySlot {
 export interface PasskeyKeySlot {
   id: string
   type: 'passkey'
+  storage: 'largeBlob'
   credentialId: string
   encryptedMasterKey: string
   masterKeyIV: string
   label?: string
   transports?: string[]
-  prfInput?: string
+  rpId?: string
 }
 
 export type KeySlot = PasswordKeySlot | PasskeyKeySlot
@@ -63,7 +64,7 @@ export interface AuthPrefs {
 }
 
 export interface VaultMeta {
-  version: 2
+  version: 3
   keySlots: KeySlot[]
   verifyIV?: string // base64-encoded — IV for session key verification
   verifyCiphertext?: string // base64-encoded — sentinel encrypted with master key

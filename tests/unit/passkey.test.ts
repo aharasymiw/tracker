@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vite-plus/test'
 import {
   createPasskeySlot,
   derivePasskeyWrappingKey,
+  forgetPasskeyCredential,
   getPasskeyOriginIssue,
   getPasskeySupport,
   isPasskeyError,
@@ -24,14 +25,21 @@ function toBase64Url(buffer: ArrayBuffer): string {
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
 }
 
+function toArrayBuffer(value: BufferSource): ArrayBuffer {
+  if (value instanceof ArrayBuffer) return value.slice(0)
+  return value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength)
+}
+
 function createPasskeyCredential(
   rawId: ArrayBuffer,
   {
-    enabled,
-    prfOutput,
+    largeBlobSupported,
+    largeBlobWritten,
+    largeBlobBlob,
   }: {
-    enabled?: boolean
-    prfOutput?: ArrayBuffer
+    largeBlobSupported?: boolean
+    largeBlobWritten?: boolean
+    largeBlobBlob?: ArrayBuffer
   } = {}
 ) {
   return {
@@ -39,17 +47,15 @@ function createPasskeyCredential(
     id: toBase64Url(rawId),
     type: 'public-key',
     getClientExtensionResults: () => ({
-      prf: {
-        ...(enabled === undefined ? {} : { enabled }),
-        ...(prfOutput
-          ? {
-              results: {
-                first: prfOutput,
-              },
-            }
-          : {}),
+      largeBlob: {
+        ...(largeBlobSupported === undefined ? {} : { supported: largeBlobSupported }),
+        ...(largeBlobWritten === undefined ? {} : { written: largeBlobWritten }),
+        ...(largeBlobBlob ? { blob: largeBlobBlob } : {}),
       },
     }),
+    response: {
+      getTransports: () => ['internal'],
+    },
   } as PublicKeyCredential
 }
 
@@ -57,19 +63,31 @@ function installWebAuthnMocks({
   platformAuthenticator,
   capabilities,
   includeCapabilitiesMethod = true,
+  rawId = Uint8Array.from([10, 20, 30, 40]).buffer,
   createResult,
-  getResult,
+  createReturnsNull = false,
+  registrationSupported = true,
+  writeSucceeds = true,
+  readBlob,
 }: {
   platformAuthenticator: boolean
   capabilities?: Record<string, boolean>
   includeCapabilitiesMethod?: boolean
+  rawId?: ArrayBuffer
   createResult?: PublicKeyCredential | null
-  getResult?: PublicKeyCredential | null
+  createReturnsNull?: boolean
+  registrationSupported?: boolean
+  writeSucceeds?: boolean
+  readBlob?: ArrayBuffer | null
 }) {
+  let storedLargeBlob: ArrayBuffer | null = null
+  const signalUnknownCredential = vi.fn().mockResolvedValue(undefined)
+
   class MockPublicKeyCredential {}
 
   const staticProperties: Record<string, unknown> = {
     isUserVerifyingPlatformAuthenticatorAvailable: vi.fn().mockResolvedValue(platformAuthenticator),
+    signalUnknownCredential,
   }
 
   if (includeCapabilitiesMethod) {
@@ -86,10 +104,36 @@ function installWebAuthnMocks({
   Object.defineProperty(navigator, 'credentials', {
     configurable: true,
     value: {
-      create: vi.fn().mockResolvedValue(createResult),
-      get: vi.fn().mockResolvedValue(getResult),
+      create: vi.fn().mockImplementation(async () => {
+        if (createResult !== undefined) return createResult
+        if (createReturnsNull) return null
+        return createPasskeyCredential(rawId, { largeBlobSupported: registrationSupported })
+      }),
+      get: vi.fn().mockImplementation(async (request: CredentialRequestOptions) => {
+        const largeBlob = (request.publicKey as PublicKeyCredentialRequestOptions | undefined)
+          ?.extensions?.largeBlob as
+          | {
+              write?: BufferSource
+              read?: boolean
+            }
+          | undefined
+
+        if (largeBlob?.write !== undefined) {
+          storedLargeBlob = writeSucceeds ? toArrayBuffer(largeBlob.write) : null
+          return createPasskeyCredential(rawId, { largeBlobWritten: writeSucceeds })
+        }
+
+        if (largeBlob?.read) {
+          const blob = readBlob === undefined ? storedLargeBlob : readBlob
+          return createPasskeyCredential(rawId, blob ? { largeBlobBlob: blob } : undefined)
+        }
+
+        return createPasskeyCredential(rawId)
+      }),
     },
   })
+
+  return { signalUnknownCredential }
 }
 
 beforeEach(() => {
@@ -112,17 +156,17 @@ describe('passkey support detection', () => {
       status: 'unsupported',
       supported: false,
       platformAuthenticator: false,
-      prf: 'unknown',
+      largeBlob: 'unknown',
       reason: 'unsupported-browser',
     })
   })
 
-  it('reports available when platform passkeys and PRF are explicitly supported', async () => {
+  it('reports available when platform passkeys and largeBlob are explicitly supported', async () => {
     installWebAuthnMocks({
       platformAuthenticator: true,
       capabilities: {
         passkeyPlatformAuthenticator: true,
-        'extension:prf': true,
+        'extension:largeBlob': true,
       },
     })
 
@@ -131,11 +175,11 @@ describe('passkey support detection', () => {
       status: 'available',
       supported: true,
       platformAuthenticator: true,
-      prf: 'supported',
+      largeBlob: 'supported',
     })
   })
 
-  it('reports tentative when PRF capability is omitted', async () => {
+  it('reports tentative when largeBlob capability is omitted', async () => {
     installWebAuthnMocks({
       platformAuthenticator: true,
       capabilities: {
@@ -148,7 +192,7 @@ describe('passkey support detection', () => {
       status: 'tentative',
       supported: true,
       platformAuthenticator: true,
-      prf: 'unknown',
+      largeBlob: 'unknown',
     })
   })
 
@@ -163,16 +207,16 @@ describe('passkey support detection', () => {
       status: 'tentative',
       supported: true,
       platformAuthenticator: true,
-      prf: 'unknown',
+      largeBlob: 'unknown',
     })
   })
 
-  it('treats explicit PRF false as unsupported', async () => {
+  it('treats explicit largeBlob false as unsupported', async () => {
     installWebAuthnMocks({
       platformAuthenticator: true,
       capabilities: {
         passkeyPlatformAuthenticator: true,
-        'extension:prf': false,
+        'extension:largeBlob': false,
       },
     })
 
@@ -181,8 +225,8 @@ describe('passkey support detection', () => {
       status: 'unsupported',
       supported: false,
       platformAuthenticator: true,
-      prf: 'unsupported',
-      reason: 'missing-prf',
+      largeBlob: 'unsupported',
+      reason: 'missing-largeblob',
     })
   })
 
@@ -197,25 +241,17 @@ describe('passkey support detection', () => {
 
     const support = await getPasskeySupport()
     expect(support.status).toBe('tentative')
-    expect(support.prf).toBe('unknown')
+    expect(support.largeBlob).toBe('unknown')
   })
 })
 
 describe('passkey enrollment and unlock', () => {
   it('derives a wrapping key that can unlock the same vault with passkey auth', async () => {
-    const rawId = Uint8Array.from([10, 20, 30, 40]).buffer
-    const prfOutput = Uint8Array.from([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
-      27, 28, 29, 30, 31, 32,
-    ]).buffer
-
     installWebAuthnMocks({
       platformAuthenticator: true,
       capabilities: {
         passkeyPlatformAuthenticator: true,
       },
-      createResult: createPasskeyCredential(rawId, { enabled: true }),
-      getResult: createPasskeyCredential(rawId, { prfOutput }),
     })
 
     const masterKey = await generateMasterKey()
@@ -225,8 +261,8 @@ describe('passkey enrollment and unlock', () => {
       displayName: 'Ada Lovelace',
     })
 
-    expect(enrollment.credentialId).toBe(toBase64Url(rawId))
-    expect(enrollment.prfInput).toBeTruthy()
+    expect(enrollment.credentialId).toBeTruthy()
+    expect(enrollment.transports).toEqual(['internal'])
 
     const restored = await unlockWithPasskeySlot(enrollment)
     const encrypted = await encrypt('hello passkey', masterKey)
@@ -239,10 +275,9 @@ describe('passkey enrollment and unlock', () => {
       platformAuthenticator: true,
       capabilities: {
         passkeyPlatformAuthenticator: true,
-        'extension:prf': true,
+        'extension:largeBlob': true,
       },
-      createResult: null,
-      getResult: null,
+      createReturnsNull: true,
     })
 
     await expect(
@@ -257,56 +292,45 @@ describe('passkey enrollment and unlock', () => {
     })
   })
 
-  it('fails with a specific error when registration reports PRF disabled', async () => {
-    const rawId = Uint8Array.from([1, 2, 3, 4]).buffer
-
+  it('fails with a specific error when registration reports largeBlob unsupported', async () => {
     installWebAuthnMocks({
       platformAuthenticator: true,
       capabilities: {
         passkeyPlatformAuthenticator: true,
       },
-      createResult: createPasskeyCredential(rawId, { enabled: false }),
-      getResult: null,
+      registrationSupported: false,
     })
 
     await expect(createPasskeySlot(await generateMasterKey())).rejects.toMatchObject({
       code: 'unsupported',
-      message: expect.stringContaining('does not expose the WebAuthn PRF extension'),
+      message: expect.stringContaining('secure unlock data Trellis needs'),
     })
   })
 
-  it('fails with a specific error when authentication does not return PRF output', async () => {
-    const rawId = Uint8Array.from([7, 8, 9, 10]).buffer
-
+  it('fails with a typed recovery error when the largeBlob write does not complete', async () => {
     installWebAuthnMocks({
       platformAuthenticator: true,
       capabilities: {
         passkeyPlatformAuthenticator: true,
       },
-      createResult: createPasskeyCredential(rawId, { enabled: true }),
-      getResult: createPasskeyCredential(rawId),
+      writeSucceeds: false,
     })
 
     await expect(createPasskeySlot(await generateMasterKey())).rejects.toMatchObject({
-      code: 'unsupported',
-      message: expect.stringContaining('does not expose the WebAuthn PRF extension'),
+      code: 'recovery-required',
+      message: expect.stringContaining('set up again'),
     })
   })
 
-  it('fails unlock when the passkey assertion omits PRF output', async () => {
+  it('fails unlock when the largeBlob read omits the stored unlock key', async () => {
     const rawId = Uint8Array.from([12, 13, 14, 15]).buffer
-    const prfOutput = Uint8Array.from([
-      9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
-      9,
-    ]).buffer
 
     installWebAuthnMocks({
       platformAuthenticator: true,
       capabilities: {
         passkeyPlatformAuthenticator: true,
       },
-      createResult: createPasskeyCredential(rawId, { enabled: true }),
-      getResult: createPasskeyCredential(rawId, { prfOutput }),
+      rawId,
     })
 
     const slot = await createPasskeySlot(await generateMasterKey())
@@ -316,12 +340,32 @@ describe('passkey enrollment and unlock', () => {
       capabilities: {
         passkeyPlatformAuthenticator: true,
       },
-      getResult: createPasskeyCredential(rawId),
+      rawId,
+      readBlob: null,
     })
 
     await expect(unlockWithPasskeySlot(slot)).rejects.toMatchObject({
-      code: 'unsupported',
-      message: expect.stringContaining('does not expose the WebAuthn PRF extension'),
+      code: 'recovery-required',
+      message: expect.stringContaining('set up again'),
+    })
+  })
+
+  it('best-effort signals unknown credentials when removing a passkey', async () => {
+    const { signalUnknownCredential } = installWebAuthnMocks({
+      platformAuthenticator: true,
+      capabilities: {
+        passkeyPlatformAuthenticator: true,
+      },
+    })
+
+    await forgetPasskeyCredential({
+      credentialId: 'credential-id',
+      rpId: 'trellis.example',
+    })
+
+    expect(signalUnknownCredential).toHaveBeenCalledWith({
+      credentialId: 'credential-id',
+      rpId: 'trellis.example',
     })
   })
 
@@ -331,13 +375,13 @@ describe('passkey enrollment and unlock', () => {
     expect(error.code).toBe('failed')
   })
 
-  it('derives a wrapping key from PRF output', async () => {
-    const prfOutput = Uint8Array.from([
+  it('derives a wrapping key from device unlock key material', async () => {
+    const deviceUnlockKey = Uint8Array.from([
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
       27, 28, 29, 30, 31, 32,
     ]).buffer
 
-    const wrappingKey = await derivePasskeyWrappingKey(prfOutput)
+    const wrappingKey = await derivePasskeyWrappingKey(deviceUnlockKey)
     const masterKey = await generateMasterKey()
     const wrapped = await wrapMasterKey(masterKey, wrappingKey)
     const extracted = await unwrapMasterKeyExtractable(

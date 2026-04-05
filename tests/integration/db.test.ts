@@ -46,7 +46,7 @@ describe('db - vault meta', () => {
     const { saveVaultMeta, getVaultMeta } = await import('@/lib/db')
 
     const meta = {
-      version: 2,
+      version: 3,
       keySlots: [
         {
           id: 'password-slot',
@@ -98,7 +98,7 @@ describe('db - vault meta', () => {
 
     const migrated = await getVaultMeta()
     expect(migrated).toEqual({
-      version: 2,
+      version: 3,
       keySlots: [
         {
           id: 'legacy-password-slot',
@@ -115,6 +115,69 @@ describe('db - vault meta', () => {
 
     const reread = await getVaultMeta()
     expect(reread).toEqual(migrated)
+  })
+
+  it('drops legacy PRF passkey slots when migrating version 2 metadata', async () => {
+    const { getVaultMeta } = await import('@/lib/db')
+
+    const version2Meta = {
+      version: 2,
+      keySlots: [
+        {
+          id: 'password-slot',
+          type: 'password',
+          passwordSalt: 'aabbccdd'.repeat(8),
+          encryptedMasterKey: 'base64data==',
+          masterKeyIV: 'iv==',
+        },
+        {
+          id: 'passkey-slot',
+          type: 'passkey',
+          credentialId: 'credential-id',
+          encryptedMasterKey: 'blob-data==',
+          masterKeyIV: 'blob-iv==',
+          prfInput: 'legacy-prf-input',
+          label: 'Fingerprint / Face ID',
+        },
+      ],
+      verifyIV: 'verifyiv==',
+      verifyCiphertext: 'verifyciphertext==',
+      createdAt: new Date().toISOString(),
+    }
+
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open('tracker-vault', 1)
+      request.onupgradeneeded = () => {
+        request.result.createObjectStore('meta')
+      }
+      request.onerror = () => reject(request.error)
+      request.onsuccess = () => resolve(request.result)
+    })
+
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction('meta', 'readwrite')
+      tx.objectStore('meta').put(version2Meta, 'vault')
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+    })
+    db.close()
+
+    const migrated = await getVaultMeta()
+    expect(migrated).toEqual({
+      version: 3,
+      keySlots: [
+        {
+          id: 'password-slot',
+          type: 'password',
+          passwordSalt: version2Meta.keySlots[0].passwordSalt,
+          encryptedMasterKey: version2Meta.keySlots[0].encryptedMasterKey,
+          masterKeyIV: version2Meta.keySlots[0].masterKeyIV,
+        },
+      ],
+      verifyIV: version2Meta.verifyIV,
+      verifyCiphertext: version2Meta.verifyCiphertext,
+      createdAt: version2Meta.createdAt,
+    })
   })
 
   it('returns undefined when no vault exists', async () => {
