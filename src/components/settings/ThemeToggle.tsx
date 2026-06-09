@@ -1,7 +1,7 @@
-import { useEffect } from 'react'
 import { Sun, Moon, Monitor } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useData } from '@/hooks/useData'
+import { setStoredTheme } from '@/lib/theme'
 import type { Theme } from '@/types'
 
 const OPTIONS: { value: Theme; icon: React.ComponentType<{ size?: number }>; label: string }[] = [
@@ -10,31 +10,14 @@ const OPTIONS: { value: Theme; icon: React.ComponentType<{ size?: number }>; lab
   { value: 'dark', icon: Moon, label: 'Dark' },
 ]
 
-function applyTheme(theme: Theme) {
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-  const isDark = theme === 'dark' || (theme === 'system' && prefersDark)
-  document.documentElement.classList.toggle('dark', isDark)
-}
-
 export function ThemeToggle() {
   const { settings, saveSettings } = useData()
 
-  useEffect(() => {
-    applyTheme(settings.theme)
-  }, [settings.theme])
-
-  // Also respond to system changes when theme is 'system'
-  useEffect(() => {
-    if (settings.theme !== 'system') return
-    const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const handler = () => applyTheme('system')
-    mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
-  }, [settings.theme])
-
   const handleChange = async (theme: Theme) => {
-    localStorage.setItem('trellis-theme', theme)
-    applyTheme(theme)
+    // Update the synchronous cache + apply immediately (useThemeSync, mounted at
+    // the app root, handles live OS tracking for 'system')...
+    setStoredTheme(theme)
+    // ...then persist the encrypted source of truth.
     await saveSettings({ theme })
   }
 

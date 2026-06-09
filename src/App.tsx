@@ -5,6 +5,7 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import { useAuth } from '@/hooks/useAuth'
 import { DataProvider } from '@/contexts/DataContext'
 import { AutoLockSync } from '@/components/AutoLockSync'
+import { useThemeSync } from '@/hooks/useThemeSync'
 import { Onboarding } from '@/components/auth/Onboarding'
 import { LockScreen } from '@/components/auth/LockScreen'
 import LogPage from '@/pages/LogPage'
@@ -47,6 +48,10 @@ function AppRoutes() {
 }
 
 export default function App() {
+  // Keep the applied theme in sync with the saved preference for the whole
+  // session, on every page (light/dark stay fixed; system tracks the OS live).
+  useThemeSync()
+
   return (
     <BrowserRouter>
       <AuthProvider>

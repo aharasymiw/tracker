@@ -51,6 +51,26 @@ export async function deriveKeyFromPassword(
   )
 }
 
+// Derive an AES-GCM key (for encrypt/decrypt) from a password — used for
+// password-protected backup files, independent of the vault's master key.
+export async function deriveBackupKey(
+  password: string,
+  saltHex: string,
+  iterations = 600_000
+): Promise<CryptoKey> {
+  const enc = new TextEncoder()
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, [
+    'deriveKey',
+  ])
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: hexToBuf(saltHex), iterations, hash: 'SHA-256' },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  )
+}
+
 export async function importWrappingKeyMaterial(rawKeyMaterial: BufferSource): Promise<CryptoKey> {
   const bytes =
     rawKeyMaterial instanceof ArrayBuffer
