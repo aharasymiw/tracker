@@ -67,11 +67,9 @@ test('export → re-import round-trip with conflict resolution', async ({ page }
   await page.locator('input[type="file"]').setInputFiles(seedPath)
   await expect(page.getByText(/Restoring/)).toBeVisible()
 
-  // Reach the password form (skip the passkey "choose" step if it appears).
+  // Restoring a backup drops straight onto the password form.
   const passwordInput = page.locator('#password')
-  if (!(await passwordInput.isVisible())) {
-    await page.getByRole('button', { name: 'Use password instead' }).click()
-  }
+  await expect(passwordInput).toBeVisible()
   await passwordInput.fill('password-123')
   await page.locator('#confirm').fill('password-123')
   await page.getByRole('button', { name: 'Create vault' }).click()

@@ -180,6 +180,65 @@ describe('db - vault meta', () => {
     })
   })
 
+  it('drops a legacy passkey slot from version 3 metadata on read', async () => {
+    const { getVaultMeta } = await import('@/lib/db')
+
+    const version3Meta = {
+      version: 3,
+      keySlots: [
+        {
+          id: 'password-slot',
+          type: 'password',
+          passwordSalt: 'aabbccdd'.repeat(8),
+          encryptedMasterKey: 'base64data==',
+          masterKeyIV: 'iv==',
+        },
+        {
+          id: 'passkey-slot',
+          type: 'passkey',
+          storage: 'largeBlob',
+          credentialId: 'credential-id',
+          encryptedMasterKey: 'blob-data==',
+          masterKeyIV: 'blob-iv==',
+          label: 'Fingerprint / Face ID',
+        },
+      ],
+      verifyIV: 'verifyiv==',
+      verifyCiphertext: 'verifyciphertext==',
+      createdAt: new Date().toISOString(),
+    }
+
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open('tracker-vault', 1)
+      request.onupgradeneeded = () => {
+        request.result.createObjectStore('meta')
+      }
+      request.onerror = () => reject(request.error)
+      request.onsuccess = () => resolve(request.result)
+    })
+
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction('meta', 'readwrite')
+      tx.objectStore('meta').put(version3Meta, 'vault')
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+    })
+    db.close()
+
+    const cleaned = await getVaultMeta()
+    expect(cleaned).toEqual({
+      version: 3,
+      keySlots: [version3Meta.keySlots[0]],
+      verifyIV: version3Meta.verifyIV,
+      verifyCiphertext: version3Meta.verifyCiphertext,
+      createdAt: version3Meta.createdAt,
+    })
+
+    // The cleaned shape is persisted, so a re-read returns the same thing.
+    const reread = await getVaultMeta()
+    expect(reread).toEqual(cleaned)
+  })
+
   it('returns undefined when no vault exists', async () => {
     const { getVaultMeta } = await import('@/lib/db')
     const result = await getVaultMeta()
@@ -194,7 +253,6 @@ describe('db - auth prefs', () => {
     const prefs = await getAuthPrefs()
     expect(prefs).toEqual({
       stayLoggedIn: false,
-      preferredUnlockMethod: 'password',
     } satisfies AuthPrefs)
   })
 
@@ -203,12 +261,10 @@ describe('db - auth prefs', () => {
 
     const saved = await saveAuthPrefs({
       stayLoggedIn: true,
-      preferredUnlockMethod: 'passkey',
     })
 
     expect(saved).toEqual({
       stayLoggedIn: true,
-      preferredUnlockMethod: 'passkey',
     })
 
     const retrieved = await getAuthPrefs()

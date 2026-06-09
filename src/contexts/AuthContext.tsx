@@ -1,13 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AuthContext } from '@/hooks/useAuth'
-import type {
-  AuthPrefs,
-  PasskeyKeySlot,
-  PasswordKeySlot,
-  UnlockMethod,
-  VaultMeta,
-  VaultState,
-} from '@/types'
+import type { AuthPrefs, PasswordKeySlot, VaultMeta, VaultState } from '@/types'
 import {
   decrypt,
   deriveKeyFromPassword,
@@ -17,7 +10,6 @@ import {
   makeNonExtractable,
   rewrapMasterKey,
   unwrapMasterKey,
-  unwrapMasterKeyExtractable,
   wrapMasterKey,
 } from '@/lib/crypto'
 import {
@@ -29,20 +21,11 @@ import {
   saveSessionKey,
   saveVaultMeta,
 } from '@/lib/db'
-import {
-  createPasskeySlot,
-  forgetPasskeyCredential,
-  getPasskeySupport,
-  isPasskeyError,
-  type PasskeySupportReason,
-  unlockWithPasskeySlot,
-} from '@/lib/passkey'
 
 const SESSION_SENTINEL = 'trellis-session-ok'
 const STAY_LOGGED_IN_STORAGE_KEY = 'trellis-stay-logged-in'
 const DEFAULT_AUTH_PREFS: AuthPrefs = {
   stayLoggedIn: false,
-  preferredUnlockMethod: 'password',
 }
 
 function readStayLoggedInCache() {
@@ -65,31 +48,11 @@ function getPasswordSlot(meta: VaultMeta | null): PasswordKeySlot | undefined {
   return meta?.keySlots.find((slot): slot is PasswordKeySlot => slot.type === 'password')
 }
 
-function getPasskeySlot(meta: VaultMeta | null): PasskeyKeySlot | undefined {
-  return meta?.keySlots.find((slot): slot is PasskeyKeySlot => slot.type === 'passkey')
-}
-
-function normalizePreferredUnlockMethod(
-  meta: VaultMeta | null,
-  method: UnlockMethod
-): UnlockMethod {
-  if (method === 'passkey' && getPasskeySlot(meta)) return 'passkey'
-  return 'password'
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [vaultState, setVaultState] = useState<VaultState>('none')
   const [masterKeyVersion, setMasterKeyVersion] = useState(0)
   const [autoLockMinutes, setAutoLockMinutesState] = useState(5)
   const [stayLoggedIn, setStayLoggedInState] = useState(readStayLoggedInCache)
-  const [hasPasskey, setHasPasskey] = useState(false)
-  const [passkeySupport, setPasskeySupport] = useState<
-    'checking' | 'available' | 'tentative' | 'unavailable'
-  >('checking')
-  const [passkeySupportReason, setPasskeySupportReason] = useState<PasskeySupportReason | null>(
-    null
-  )
-  const [preferredUnlockMethod, setPreferredUnlockMethodState] = useState<UnlockMethod>('password')
   const masterKeyRef = useRef<CryptoKey | null>(null)
   const lockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const vaultMetaRef = useRef<VaultMeta | null>(null)
@@ -102,21 +65,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const syncVaultMeta = useCallback((meta: VaultMeta | null) => {
     vaultMetaRef.current = meta
-    setHasPasskey(Boolean(getPasskeySlot(meta)))
   }, [])
 
-  const syncAuthPrefs = useCallback(
-    (prefs: AuthPrefs, metaOverride: VaultMeta | null = vaultMetaRef.current) => {
-      const normalized = normalizePreferredUnlockMethod(metaOverride, prefs.preferredUnlockMethod)
-      const nextPrefs = { ...prefs, preferredUnlockMethod: normalized }
-      authPrefsRef.current = nextPrefs
-      setStayLoggedInState(nextPrefs.stayLoggedIn)
-      setPreferredUnlockMethodState(nextPrefs.preferredUnlockMethod)
-      writeStayLoggedInCache(nextPrefs.stayLoggedIn)
-      return nextPrefs
-    },
-    []
-  )
+  const syncAuthPrefs = useCallback((prefs: AuthPrefs) => {
+    authPrefsRef.current = prefs
+    setStayLoggedInState(prefs.stayLoggedIn)
+    writeStayLoggedInCache(prefs.stayLoggedIn)
+    return prefs
+  }, [])
 
   const savePrefs = useCallback(
     async (updates: Partial<AuthPrefs>) => {
@@ -152,15 +108,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   )
 
   const finishUnlock = useCallback(
-    async (masterKey: CryptoKey, method: UnlockMethod, meta: VaultMeta) => {
+    async (masterKey: CryptoKey, meta: VaultMeta) => {
       masterKeyRef.current = masterKey
       setMasterKeyVersion((value) => value + 1)
       syncVaultMeta(meta)
       setVaultState('unlocked')
-      await savePrefs({ preferredUnlockMethod: method })
       await persistKeyIfStayLoggedIn(masterKey)
     },
-    [persistKeyIfStayLoggedIn, savePrefs, syncVaultMeta]
+    [persistKeyIfStayLoggedIn, syncVaultMeta]
   )
 
   const lock = useCallback(() => {
@@ -213,55 +168,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       await saveVaultMeta(meta)
       syncVaultMeta(meta)
-      syncAuthPrefs(DEFAULT_AUTH_PREFS, meta)
+      syncAuthPrefs(DEFAULT_AUTH_PREFS)
       await saveAuthPrefs(DEFAULT_AUTH_PREFS)
-
-      const usableKey = await makeNonExtractable(masterKey)
-      masterKeyRef.current = usableKey
-      setMasterKeyVersion((value) => value + 1)
-      setVaultState('unlocked')
-    },
-    [createPasswordSlot, syncAuthPrefs, syncVaultMeta]
-  )
-
-  const createVaultWithPasskey = useCallback(
-    async (recoveryPassword: string): Promise<void> => {
-      const masterKey = await generateMasterKey()
-      const [passwordSlot, enrollment] = await Promise.all([
-        createPasswordSlot(masterKey, recoveryPassword),
-        createPasskeySlot(masterKey),
-      ])
-      const passkeySlot: PasskeyKeySlot = {
-        id: 'passkey-slot',
-        type: 'passkey',
-        storage: 'largeBlob',
-        credentialId: enrollment.credentialId,
-        encryptedMasterKey: enrollment.encryptedMasterKey,
-        masterKeyIV: enrollment.masterKeyIV,
-        label: 'Fingerprint / Face ID',
-        transports: enrollment.transports,
-        rpId: enrollment.rpId,
-      }
-      const { iv: verifyIV, ciphertext: verifyCiphertext } = await encrypt(
-        SESSION_SENTINEL,
-        masterKey
-      )
-      const meta: VaultMeta = {
-        version: 3,
-        keySlots: [passwordSlot, passkeySlot],
-        verifyIV,
-        verifyCiphertext,
-        createdAt: new Date().toISOString(),
-      }
-      const prefs: AuthPrefs = {
-        stayLoggedIn: false,
-        preferredUnlockMethod: 'passkey',
-      }
-
-      await saveVaultMeta(meta)
-      syncVaultMeta(meta)
-      syncAuthPrefs(prefs, meta)
-      await saveAuthPrefs(prefs)
 
       const usableKey = await makeNonExtractable(masterKey)
       masterKeyRef.current = usableKey
@@ -285,7 +193,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           wrappingKey
         )
         const verifiedMeta = await ensureVerificationTag(meta, masterKey)
-        await finishUnlock(masterKey, 'password', verifiedMeta)
+        await finishUnlock(masterKey, verifiedMeta)
         return true
       } catch {
         return false
@@ -293,24 +201,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     [ensureVerificationTag, finishUnlock]
   )
-
-  const unlockWithPasskey = useCallback(async (): Promise<boolean> => {
-    const meta = await getVaultMeta()
-    const passkeySlot = getPasskeySlot(meta ?? null)
-    if (!meta || !passkeySlot) return false
-
-    try {
-      const masterKey = await unlockWithPasskeySlot(passkeySlot)
-      const verifiedMeta = await ensureVerificationTag(meta, masterKey)
-      await finishUnlock(masterKey, 'passkey', verifiedMeta)
-      return true
-    } catch (error) {
-      if (isPasskeyError(error) && error.code === 'cancelled') {
-        return false
-      }
-      throw error
-    }
-  }, [ensureVerificationTag, finishUnlock])
 
   const changePassword = useCallback(
     async (oldPassword: string, newPassword: string): Promise<boolean> => {
@@ -350,62 +240,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [syncVaultMeta]
   )
 
-  const addPasskey = useCallback(
-    async (password: string): Promise<void> => {
-      const meta = await getVaultMeta()
-      const passwordSlot = getPasswordSlot(meta ?? null)
-      if (!meta || !passwordSlot) {
-        throw new Error('A recovery password is required before adding fingerprint / Face ID')
-      }
-
-      const passwordWrappingKey = await deriveKeyFromPassword(password, passwordSlot.passwordSalt)
-      const extractableMasterKey = await unwrapMasterKeyExtractable(
-        passwordSlot.encryptedMasterKey,
-        passwordSlot.masterKeyIV,
-        passwordWrappingKey
-      )
-      const enrollment = await createPasskeySlot(extractableMasterKey)
-      const passkeySlot: PasskeyKeySlot = {
-        id: getPasskeySlot(meta)?.id ?? 'passkey-slot',
-        type: 'passkey',
-        storage: 'largeBlob',
-        credentialId: enrollment.credentialId,
-        encryptedMasterKey: enrollment.encryptedMasterKey,
-        masterKeyIV: enrollment.masterKeyIV,
-        label: 'Fingerprint / Face ID',
-        transports: enrollment.transports,
-        rpId: enrollment.rpId,
-      }
-      const updatedMeta: VaultMeta = {
-        ...meta,
-        keySlots: [...meta.keySlots.filter((slot) => slot.type !== 'passkey'), passkeySlot],
-      }
-
-      await saveVaultMeta(updatedMeta)
-      syncVaultMeta(updatedMeta)
-      await savePrefs({ preferredUnlockMethod: 'passkey' })
-    },
-    [savePrefs, syncVaultMeta]
-  )
-
-  const removePasskey = useCallback(async (): Promise<void> => {
-    const meta = await getVaultMeta()
-    if (!meta) return
-    const passkeySlot = getPasskeySlot(meta)
-
-    const updatedMeta: VaultMeta = {
-      ...meta,
-      keySlots: meta.keySlots.filter((slot) => slot.type !== 'passkey'),
-    }
-
-    await saveVaultMeta(updatedMeta)
-    syncVaultMeta(updatedMeta)
-    await savePrefs({ preferredUnlockMethod: 'password' })
-    if (passkeySlot) {
-      await forgetPasskeyCredential(passkeySlot)
-    }
-  }, [savePrefs, syncVaultMeta])
-
   const setStayLoggedIn = useCallback(
     async (nextStayLoggedIn: boolean) => {
       const prefs = await savePrefs({ stayLoggedIn: nextStayLoggedIn })
@@ -424,38 +258,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false
 
     async function init() {
-      const [meta, prefs, support] = await Promise.all([
-        getVaultMeta(),
-        getAuthPrefs(),
-        getPasskeySupport().catch(() => ({
-          status: 'unsupported',
-          supported: false,
-          platformAuthenticator: false,
-          largeBlob: 'unknown' as const,
-          reason: 'unsupported-browser' as const,
-        })),
-      ])
+      const [meta, prefs] = await Promise.all([getVaultMeta(), getAuthPrefs()])
 
       if (cancelled) return
 
-      setPasskeySupport(support.status)
-      setPasskeySupportReason(support.reason ?? null)
-
       if (!meta) {
         syncVaultMeta(null)
-        const normalizedPrefs = syncAuthPrefs(prefs, null)
-        if (normalizedPrefs.preferredUnlockMethod !== prefs.preferredUnlockMethod) {
-          await saveAuthPrefs(normalizedPrefs)
-        }
+        syncAuthPrefs(prefs)
         setVaultState('none')
         return
       }
 
       syncVaultMeta(meta)
-      const normalizedPrefs = syncAuthPrefs(prefs, meta)
-      if (normalizedPrefs.preferredUnlockMethod !== prefs.preferredUnlockMethod) {
-        await saveAuthPrefs(normalizedPrefs)
-      }
+      syncAuthPrefs(prefs)
 
       const sessionKey = await getSessionKey()
       if (cancelled) return
@@ -515,21 +330,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         vaultState,
         unlockWithPassword,
-        unlockWithPasskey,
         lock,
         createVaultWithPassword,
-        createVaultWithPasskey,
         changePassword,
-        addPasskey,
-        removePasskey,
         masterKey: masterKeyRef.current,
         setAutoLockMinutes,
         stayLoggedIn,
         setStayLoggedIn,
-        hasPasskey,
-        passkeySupport,
-        passkeySupportReason,
-        preferredUnlockMethod,
       }}
     >
       {children}

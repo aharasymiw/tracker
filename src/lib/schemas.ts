@@ -1,7 +1,5 @@
 import { z } from 'zod'
 
-export const UnlockMethodSchema = z.enum(['password', 'passkey'])
-
 export const ConsumptionTypeSchema = z.enum([
   'flower',
   'vape',
@@ -46,22 +44,7 @@ export const PasswordKeySlotSchema = z.object({
   masterKeyIV: z.string().min(1),
 })
 
-export const PasskeyKeySlotSchema = z.object({
-  id: z.string().min(1),
-  type: z.literal('passkey'),
-  storage: z.literal('largeBlob'),
-  credentialId: z.string().min(1),
-  encryptedMasterKey: z.string().min(1),
-  masterKeyIV: z.string().min(1),
-  label: z.string().min(1).optional(),
-  transports: z.array(z.string().min(1)).optional(),
-  rpId: z.string().min(1).optional(),
-})
-
-export const KeySlotSchema = z.discriminatedUnion('type', [
-  PasswordKeySlotSchema,
-  PasskeyKeySlotSchema,
-])
+export const KeySlotSchema = PasswordKeySlotSchema
 
 export const VaultMetaSchema = z.object({
   version: z.literal(3),
@@ -73,7 +56,6 @@ export const VaultMetaSchema = z.object({
 
 export const AuthPrefsSchema = z.object({
   stayLoggedIn: z.boolean().default(false),
-  preferredUnlockMethod: UnlockMethodSchema.default('password'),
 })
 
 export const AppSettingsSchema = z.object({
@@ -86,14 +68,7 @@ export const AppSettingsSchema = z.object({
 export type LogEntryInput = z.infer<typeof LogEntrySchema>
 export type GoalInput = z.infer<typeof GoalSchema>
 export type PasswordKeySlotInput = z.infer<typeof PasswordKeySlotSchema>
-export type PasskeyKeySlotInput = z.infer<typeof PasskeyKeySlotSchema>
 export type KeySlotInput = z.infer<typeof KeySlotSchema>
 export type VaultMetaInput = z.infer<typeof VaultMetaSchema>
 export type AuthPrefsInput = z.infer<typeof AuthPrefsSchema>
 export type AppSettingsInput = z.infer<typeof AppSettingsSchema>
-
-export {
-  PasswordKeySlotSchema as VaultPasswordSlotSchema,
-  PasskeyKeySlotSchema as VaultPasskeySlotSchema,
-  KeySlotSchema as VaultKeySlotSchema,
-}
