@@ -26,5 +26,7 @@ dist-ssr
 # Worktrees
 .worktrees
 
-# Playwright MCP
+# Playwright
 .playwright-mcp
+test-results
+playwright-report

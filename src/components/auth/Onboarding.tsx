@@ -1,11 +1,13 @@
-import { useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { Loader2, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/hooks/useAuth'
+import { decodeBackupJSON, inspectBackupJSON, parseEntriesCSV, type BackupData } from '@/lib/backup'
+import { setPendingImport, clearPendingImport } from '@/lib/pendingImport'
 
-type Step = 'welcome' | 'choose' | 'password' | 'passkey'
+type Step = 'welcome' | 'restore-password' | 'choose' | 'password' | 'passkey'
 
 export function Onboarding() {
   const { createVaultWithPassword, createVaultWithPasskey, passkeySupport } = useAuth()
@@ -15,8 +17,58 @@ export function Onboarding() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // Restore-from-backup (seed a brand-new vault)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [seed, setSeed] = useState<BackupData | null>(null)
+  const [seedFileText, setSeedFileText] = useState('')
+  const [restorePw, setRestorePw] = useState('')
+  const [restoreError, setRestoreError] = useState('')
+  const [restoreBusy, setRestoreBusy] = useState(false)
+
   const canSubmit = !loading && password.length >= 8 && password === confirm
   const passkeyAvailable = passkeySupport === 'available' || passkeySupport === 'tentative'
+
+  const proceedAfterSeed = () => {
+    setRestoreError('')
+    setRestorePw('')
+    setStep(passkeyAvailable ? 'choose' : 'password')
+  }
+
+  const handleRestoreFile = async (file: File) => {
+    setRestoreError('')
+    const text = await file.text()
+    try {
+      if (file.name.toLowerCase().endsWith('.csv')) {
+        const entries = parseEntriesCSV(text)
+        setSeed({ entries, goals: [], settings: { theme: 'system', autoLockMinutes: 5 } })
+        proceedAfterSeed()
+        return
+      }
+      const info = inspectBackupJSON(text)
+      if (info.encrypted) {
+        setSeedFileText(text)
+        setStep('restore-password')
+        return
+      }
+      setSeed(await decodeBackupJSON(text))
+      proceedAfterSeed()
+    } catch (err) {
+      setRestoreError(err instanceof Error ? err.message : 'Could not read this backup file.')
+    }
+  }
+
+  const submitRestorePassword = async () => {
+    setRestoreBusy(true)
+    setRestoreError('')
+    try {
+      setSeed(await decodeBackupJSON(seedFileText, restorePw))
+      proceedAfterSeed()
+    } catch {
+      setRestoreError('Incorrect password. Please try again.')
+    } finally {
+      setRestoreBusy(false)
+    }
+  }
 
   const validateRecoveryPassword = () => {
     if (password.length < 8) {
@@ -34,9 +86,12 @@ export function Onboarding() {
     if (!validateRecoveryPassword()) return
     setError('')
     setLoading(true)
+    // Stage the backup so DataContext seeds it once the new vault unlocks.
+    if (seed) setPendingImport(seed)
     try {
       await createVaultWithPassword(password)
     } catch (err) {
+      clearPendingImport()
       setError(
         err instanceof Error && err.message
           ? err.message
@@ -51,9 +106,11 @@ export function Onboarding() {
     if (!validateRecoveryPassword()) return
     setError('')
     setLoading(true)
+    if (seed) setPendingImport(seed)
     try {
       await createVaultWithPasskey(password)
     } catch (err) {
+      clearPendingImport()
       setError(
         err instanceof Error && err.message
           ? err.message
@@ -67,6 +124,17 @@ export function Onboarding() {
   if (step === 'welcome') {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-8 p-6 text-center">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json,.csv,application/json,text/csv"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            e.target.value = ''
+            if (file) void handleRestoreFile(file)
+          }}
+        />
         <div className="space-y-2">
           <h1 className="font-serif text-4xl">Trellis</h1>
           <p className="text-muted-foreground">Track mindfully. Understand your patterns.</p>
@@ -74,16 +142,93 @@ export function Onboarding() {
         <div className="max-w-xs rounded-xl border bg-card p-4 text-sm text-muted-foreground">
           Your data never leaves this device. Everything is encrypted locally.
         </div>
-        <Button
-          size="lg"
-          className="w-full max-w-xs"
-          onClick={() => setStep(passkeyAvailable ? 'choose' : 'password')}
-        >
-          Get Started
-        </Button>
+        <div className="w-full max-w-xs space-y-2">
+          <Button
+            size="lg"
+            className="w-full"
+            onClick={() => setStep(passkeyAvailable ? 'choose' : 'password')}
+          >
+            Get Started
+          </Button>
+          <Button
+            size="lg"
+            variant="ghost"
+            className="w-full"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload size={16} className="mr-2" /> Restore from a backup
+          </Button>
+          {restoreError && <p className="text-sm text-destructive">{restoreError}</p>}
+        </div>
       </div>
     )
   }
+
+  if (step === 'restore-password') {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-6 p-6">
+        <div className="w-full max-w-sm space-y-6">
+          <div className="space-y-1 text-center">
+            <h2 className="font-serif text-2xl">Encrypted backup</h2>
+            <p className="text-sm text-muted-foreground">
+              This backup is password-protected. Enter the password it was exported with.
+            </p>
+          </div>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="restore-pw">Backup password</Label>
+              <Input
+                id="restore-pw"
+                type="password"
+                value={restorePw}
+                autoFocus
+                onChange={(e) => setRestorePw(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && restorePw && !restoreBusy) void submitRestorePassword()
+                }}
+              />
+            </div>
+            {restoreError && <p className="text-sm text-destructive">{restoreError}</p>}
+            <div className="space-y-2">
+              <Button
+                className="w-full"
+                onClick={submitRestorePassword}
+                disabled={restoreBusy || !restorePw}
+              >
+                {restoreBusy ? 'Decrypting…' : 'Unlock backup'}
+              </Button>
+              <Button
+                className="w-full"
+                variant="ghost"
+                onClick={() => {
+                  setRestoreError('')
+                  setRestorePw('')
+                  setSeedFileText('')
+                  setStep('welcome')
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const seedNotice = seed ? (
+    <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
+      Restoring <strong>{seed.entries.length}</strong>{' '}
+      {seed.entries.length === 1 ? 'entry' : 'entries'}
+      {seed.goals.length > 0 && (
+        <>
+          {' '}
+          and <strong>{seed.goals.length}</strong> goals
+        </>
+      )}{' '}
+      into your new vault.
+    </div>
+  ) : null
 
   if (step === 'choose') {
     return (
@@ -95,6 +240,8 @@ export function Onboarding() {
               Use your device biometrics for quick access, or stick with a password-only vault.
             </p>
           </div>
+
+          {seedNotice}
 
           <div className="space-y-3">
             <Button className="w-full" size="lg" onClick={() => setStep('passkey')}>
@@ -127,6 +274,8 @@ export function Onboarding() {
         </div>
 
         <div className="space-y-4">
+          {seedNotice}
+
           {isPasskeyStep && (
             <div className="rounded-xl border bg-card px-4 py-3 text-sm text-muted-foreground">
               You&apos;ll unlock with your device biometrics, and this recovery password will stay

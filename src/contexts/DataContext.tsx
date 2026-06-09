@@ -2,10 +2,18 @@ import { useCallback, useEffect, useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { useAuth } from '@/hooks/useAuth'
 import { encrypt, decrypt } from '@/lib/crypto'
-import { putEncrypted, getEncrypted, getAllEncrypted, deleteEncrypted } from '@/lib/db'
+import {
+  putEncrypted,
+  getEncrypted,
+  getAllEncrypted,
+  deleteEncrypted,
+  clearEncryptedStore,
+} from '@/lib/db'
 import { LogEntrySchema, GoalSchema, AppSettingsSchema } from '@/lib/schemas'
 import type { LogEntry, Goal, AppSettings, EncryptedRecord } from '@/types'
-import { DataContext } from '@/hooks/useData'
+import { DataContext, type ResolvedImport } from '@/hooks/useData'
+import { setStoredTheme } from '@/lib/theme'
+import { takePendingImport } from '@/lib/pendingImport'
 
 async function encryptRecord<T>(
   id: string,
@@ -39,7 +47,70 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS)
   const [isLoading, setIsLoading] = useState(false)
 
-  // Load all data when vault unlocks
+  // Load (or reload) everything from the encrypted stores.
+  const loadAll = useCallback(async () => {
+    if (!masterKey) return
+    const key = masterKey
+    setIsLoading(true)
+    try {
+      const [encEntries, encGoals, encSettings] = await Promise.all([
+        getAllEncrypted('entries'),
+        getAllEncrypted('goals'),
+        getEncrypted('settings', SETTINGS_ID),
+      ])
+
+      const decEntries = await Promise.all(
+        encEntries.map((r) => decryptRecord(r, key, (v) => LogEntrySchema.parse(v)))
+      )
+      const decGoals = await Promise.all(
+        encGoals.map((r) => decryptRecord(r, key, (v) => GoalSchema.parse(v)))
+      )
+
+      decEntries.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+      setEntries(decEntries)
+      setGoals(decGoals)
+
+      if (encSettings) {
+        const decSettings = await decryptRecord(encSettings, key, (v) => AppSettingsSchema.parse(v))
+        setSettings(decSettings)
+        // Reconcile the synchronous theme cache with the encrypted source of
+        // truth so useThemeSync and the next cold start apply the right theme
+        // even if the cache was cleared or drifted.
+        setStoredTheme(decSettings.theme)
+      }
+    } catch (err) {
+      console.error('Failed to load data:', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [masterKey])
+
+  // Write a fully-resolved import into the encrypted stores, then reload.
+  const importBackup = useCallback(
+    async (resolved: ResolvedImport): Promise<void> => {
+      if (!masterKey) throw new Error('Vault is locked')
+      const key = masterKey
+      if (resolved.mode === 'replace') {
+        await clearEncryptedStore('entries')
+        await clearEncryptedStore('goals')
+      }
+      for (const e of resolved.entries) {
+        await putEncrypted('entries', await encryptRecord(e.id, e, key))
+      }
+      for (const g of resolved.goals) {
+        await putEncrypted('goals', await encryptRecord(g.id, g, key))
+      }
+      if (resolved.settings) {
+        const parsed = AppSettingsSchema.parse(resolved.settings)
+        await putEncrypted('settings', await encryptRecord(SETTINGS_ID, parsed, key))
+      }
+      await loadAll()
+    },
+    [masterKey, loadAll]
+  )
+
+  // Load on unlock; clear on lock. After loading, apply any backup staged by
+  // onboarding to seed a brand-new vault.
   useEffect(() => {
     if (vaultState !== 'unlocked' || !masterKey) {
       setEntries([])
@@ -47,41 +118,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setSettings(DEFAULT_SETTINGS)
       return
     }
-
-    setIsLoading(true)
-    const load = async () => {
-      try {
-        const [encEntries, encGoals, encSettings] = await Promise.all([
-          getAllEncrypted('entries'),
-          getAllEncrypted('goals'),
-          getEncrypted('settings', SETTINGS_ID),
-        ])
-
-        const decEntries = await Promise.all(
-          encEntries.map((r) => decryptRecord(r, masterKey!, (v) => LogEntrySchema.parse(v)))
-        )
-        const decGoals = await Promise.all(
-          encGoals.map((r) => decryptRecord(r, masterKey!, (v) => GoalSchema.parse(v)))
-        )
-
-        decEntries.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-        setEntries(decEntries)
-        setGoals(decGoals)
-
-        if (encSettings) {
-          const decSettings = await decryptRecord(encSettings, masterKey!, (v) =>
-            AppSettingsSchema.parse(v)
-          )
-          setSettings(decSettings)
-        }
-      } catch (err) {
-        console.error('Failed to load data:', err)
-      } finally {
-        setIsLoading(false)
+    void (async () => {
+      await loadAll()
+      const seed = takePendingImport()
+      if (seed) {
+        await importBackup({
+          mode: 'merge',
+          entries: seed.entries,
+          goals: seed.goals,
+          settings: seed.settings,
+        })
       }
-    }
-    load()
-  }, [vaultState, masterKey])
+    })()
+  }, [vaultState, masterKey, loadAll, importBackup])
 
   const addEntry = useCallback(
     async (input: Omit<LogEntry, 'id' | 'createdAt' | 'updatedAt'>): Promise<LogEntry> => {
@@ -174,6 +223,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         deleteGoal,
         settings,
         saveSettings,
+        importBackup,
         isLoading,
       }}
     >

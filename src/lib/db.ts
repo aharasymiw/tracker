@@ -236,6 +236,11 @@ export async function deleteEncrypted(
   await db.delete(store, id)
 }
 
+export async function clearEncryptedStore(store: 'entries' | 'goals' | 'settings'): Promise<void> {
+  const db = await getDB()
+  await db.clear(store)
+}
+
 // Test-only: resets the cached DB promise so the next call opens a fresh connection
 export function resetDbForTesting() {
   dbPromise = null

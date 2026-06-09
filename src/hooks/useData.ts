@@ -1,6 +1,18 @@
 import { createContext, useContext } from 'react'
 import type { LogEntry, Goal, AppSettings } from '@/types'
 
+/**
+ * A fully-resolved import ready to write. The UI resolves merge/replace and any
+ * id conflicts first (see `@/lib/backup`), so this is just the final record set.
+ * `settings: null` leaves the current settings untouched.
+ */
+export interface ResolvedImport {
+  mode: 'merge' | 'replace'
+  entries: LogEntry[]
+  goals: Goal[]
+  settings: AppSettings | null
+}
+
 export interface DataContextValue {
   // Entries
   entries: LogEntry[]
@@ -14,6 +26,8 @@ export interface DataContextValue {
   // Settings
   settings: AppSettings
   saveSettings: (settings: Partial<AppSettings>) => Promise<void>
+  // Backup import (export reads entries/goals/settings directly)
+  importBackup: (resolved: ResolvedImport) => Promise<void>
   // State
   isLoading: boolean
 }
