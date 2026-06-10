@@ -1,0 +1,218 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        margin: 0;
+        background: #888;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="tile" width="1024" height="1024"></canvas>
+    <script>
+      // "Day by Day" icon — calendar with a cannabis leaf dissolving into dots.
+      // Recreated as vector geometry from the reference sprite tile.
+      const params = new URLSearchParams(location.search)
+      const mode = params.get('mode') || 'tile' // tile | fullbleed | maskable
+      const c = document.getElementById('tile')
+      const ctx = c.getContext('2d')
+      const S = 1024
+
+      // Deterministic PRNG so dot scatter is reproducible
+      function mulberry32(a) {
+        return function () {
+          a |= 0
+          a = (a + 0x6d2b79f5) | 0
+          let t = Math.imul(a ^ (a >>> 15), 1 | a)
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+        }
+      }
+
+      function lobe(ctx, len, halfW) {
+        // slender pointed petal from origin pointing up (negative y)
+        ctx.beginPath()
+        ctx.moveTo(0, 0)
+        ctx.bezierCurveTo(-halfW, -len * 0.25, -halfW * 0.85, -len * 0.7, 0, -len)
+        ctx.bezierCurveTo(halfW * 0.85, -len * 0.7, halfW, -len * 0.25, 0, 0)
+        ctx.fill()
+      }
+
+      function drawLeaf(ctx, cx, cy, size, color) {
+        ctx.save()
+        ctx.translate(cx, cy)
+        ctx.fillStyle = color
+        // stem
+        ctx.save()
+        ctx.rotate(Math.PI)
+        ctx.beginPath()
+        ctx.roundRect(-size * 0.025, 0, size * 0.05, size * 0.3, size * 0.025)
+        ctx.fill()
+        ctx.restore()
+        // 7 lobes: [angle deg, length, halfWidth] as fractions of size
+        const lobes = [
+          [0, 1.0, 0.115],
+          [-26, 0.94, 0.105],
+          [26, 0.94, 0.105],
+          [-52, 0.76, 0.09],
+          [52, 0.76, 0.09],
+          [-82, 0.48, 0.07],
+          [82, 0.48, 0.07],
+        ]
+        for (const [deg, len, hw] of lobes) {
+          ctx.save()
+          ctx.rotate((deg * Math.PI) / 180)
+          lobe(ctx, size * len, size * hw)
+          ctx.restore()
+        }
+        ctx.restore()
+      }
+
+      async function draw() {
+        ctx.clearRect(0, 0, S, S)
+
+        // --- outer tile ---
+        ctx.beginPath()
+        if (mode === 'tile') ctx.roundRect(0, 0, S, S, 172)
+        else ctx.rect(0, 0, S, S)
+        const bg = ctx.createLinearGradient(0, 0, 0, S)
+        bg.addColorStop(0, '#E2E5F2')
+        bg.addColorStop(1, '#D3D7EA')
+        ctx.fillStyle = bg
+        ctx.fill()
+
+        // maskable: shrink content into the 80% safe zone
+        const k = mode === 'maskable' ? 0.74 : 1
+        ctx.save()
+        ctx.translate(S / 2, S / 2)
+        ctx.scale(k, k)
+        ctx.translate(-S / 2, -S / 2)
+
+        // --- calendar card ---
+        const calX = 132,
+          calY = 150,
+          calW = 760,
+          calH = 740,
+          calR = 56
+        // soft shadow
+        ctx.save()
+        ctx.shadowColor = 'rgba(60, 70, 110, 0.28)'
+        ctx.shadowBlur = 46
+        ctx.shadowOffsetY = 26
+        ctx.beginPath()
+        ctx.roundRect(calX, calY, calW, calH, calR)
+        ctx.fillStyle = '#FEFCF8'
+        ctx.fill()
+        ctx.restore()
+
+        // header bar (rounded top corners only)
+        const headH = 112
+        ctx.beginPath()
+        ctx.roundRect(calX, calY, calW, headH + calR, calR)
+        ctx.save()
+        ctx.beginPath()
+        ctx.rect(calX, calY, calW, headH)
+        ctx.clip()
+        ctx.beginPath()
+        ctx.roundRect(calX, calY, calW, headH + calR, calR)
+        const hb = ctx.createLinearGradient(0, calY, 0, calY + headH)
+        hb.addColorStop(0, '#5379AC')
+        hb.addColorStop(1, '#486CA0')
+        ctx.fillStyle = hb
+        ctx.fill()
+        ctx.restore()
+
+        // binder rings
+        for (const rx of [calX + calW * 0.26, calX + calW * 0.74]) {
+          ctx.beginPath()
+          ctx.roundRect(rx - 18, calY - 60, 36, 96, 18)
+          ctx.fillStyle = '#445370'
+          ctx.fill()
+          // highlight
+          ctx.beginPath()
+          ctx.roundRect(rx - 7, calY - 52, 11, 44, 5)
+          ctx.fillStyle = 'rgba(255,255,255,0.28)'
+          ctx.fill()
+        }
+
+        // --- day grid: 5 cols x 3 rows, some cells "consumed" ---
+        const gridLeft = calX + 78
+        const gridTop = calY + headH + 60
+        const cell = 88,
+          pitch = 130
+        const skip = new Set(['1,3', '1,4', '2,1', '2,2', '2,3', '2,4'])
+        ctx.fillStyle = '#DBDBDC'
+        for (let row = 0; row < 3; row++)
+          for (let col = 0; col < 5; col++) {
+            if (skip.has(row + ',' + col)) continue
+            ctx.beginPath()
+            ctx.roundRect(gridLeft + col * pitch, gridTop + row * pitch, cell, cell, 18)
+            ctx.fill()
+          }
+
+        // --- leaf on its own layer so the dissolve only erases leaf pixels ---
+        const leafCx = 470,
+          leafCy = 705,
+          leafSize = 290
+        const layer = document.createElement('canvas')
+        layer.width = S
+        layer.height = S
+        const lctx = layer.getContext('2d')
+        const leafColor = lctx.createLinearGradient(
+          leafCx - leafSize,
+          leafCy,
+          leafCx + leafSize,
+          leafCy - leafSize
+        )
+        leafColor.addColorStop(0, '#5C9F86')
+        leafColor.addColorStop(1, '#7DB7A0')
+        drawLeaf(lctx, leafCx, leafCy, leafSize, leafColor)
+
+        // dissolve: erase everything beyond a tilted front (25 deg above horizontal,
+        // pointing up-right), then nibble the edge with small bites
+        const rand = mulberry32(7)
+        lctx.save()
+        lctx.globalCompositeOperation = 'destination-out'
+        lctx.translate(leafCx, leafCy)
+        lctx.rotate((-25 * Math.PI) / 180) // +x now points 25deg above horizontal
+        const F = 150
+        lctx.fillRect(F, -600, 700, 1200)
+        for (let i = 0; i < 70; i++) {
+          const along = -290 + rand() * 560
+          const depth = F - rand() * 55
+          const r = 5 + rand() * 13
+          lctx.beginPath()
+          lctx.arc(depth, along, r, 0, Math.PI * 2)
+          lctx.fill()
+        }
+        lctx.restore()
+        ctx.drawImage(layer, 0, 0)
+
+        // --- scatter: green dots trailing up-right from the dissolved edge ---
+        const rand2 = mulberry32(13)
+        for (let i = 0; i < 175; i++) {
+          const t = rand2() // 0 near leaf → 1 far
+          const ang = -0.5 - rand2() * 0.4 // radians, up-right direction
+          const dist = 55 + t * 330
+          const x = leafCx + 125 + Math.cos(ang) * dist + (rand2() - 0.5) * 30
+          const y = leafCy - 120 + Math.sin(ang) * dist * 0.8 + (rand2() - 0.5) * 30
+          const r = Math.max(2, 5 * (1 - t) + rand2() * 2.5)
+          if (x > calX + calW - 34 || y < calY + headH + 24) continue
+          ctx.beginPath()
+          ctx.arc(x, y, r, 0, Math.PI * 2)
+          ctx.fillStyle = 'rgba(101, 165, 140, ' + (0.9 - t * 0.5).toFixed(2) + ')'
+          ctx.fill()
+        }
+
+        ctx.restore()
+        document.title = 'ready'
+      }
+      draw()
+    </script>
+  </body>
+</html>

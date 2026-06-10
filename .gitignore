@@ -30,3 +30,6 @@ dist-ssr
 .playwright-mcp
 test-results
 playwright-report
+
+# Design sources (not shipped)
+design

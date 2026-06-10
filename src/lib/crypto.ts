@@ -1,6 +1,15 @@
 // Utility helpers
 function bufToBase64(buf: ArrayBuffer): string {
-  return btoa(String.fromCharCode(...new Uint8Array(buf)))
+  // Convert in chunks: spreading the whole buffer into fromCharCode arguments
+  // hits engine argument limits (~64K on Safari) and throws on large payloads,
+  // e.g. encrypted backups of a long history.
+  const bytes = new Uint8Array(buf)
+  const CHUNK = 0x8000
+  let binary = ''
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK))
+  }
+  return btoa(binary)
 }
 
 function base64ToBuf(b64: string): ArrayBuffer {

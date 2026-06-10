@@ -7,7 +7,8 @@ import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { isStoragePersisted, requestPersistentStorage } from '@/lib/storage'
 
 export default function SettingsPage() {
   const { settings, saveSettings } = useData()
@@ -18,6 +19,16 @@ export default function SettingsPage() {
   const [pwError, setPwError] = useState('')
   const [pwSuccess, setPwSuccess] = useState(false)
   const [savingPw, setSavingPw] = useState(false)
+  const [storagePersisted, setStoragePersisted] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    void (async () => {
+      // Re-request on visit — some browsers only grant once the site has
+      // engagement; the call is a no-op when already granted.
+      const granted = (await requestPersistentStorage()) || (await isStoragePersisted())
+      setStoragePersisted(granted)
+    })()
+  }, [])
 
   const handleAutoLockChange = async (vals: number | readonly number[]) => {
     const value = Array.isArray(vals) ? vals[0] : typeof vals === 'number' ? vals : vals[0]
@@ -131,6 +142,13 @@ export default function SettingsPage() {
       <section className="rounded-xl border bg-card p-4 space-y-3">
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Data</p>
         <DataExport />
+        {storagePersisted !== null && (
+          <p className="text-xs text-muted-foreground">
+            {storagePersisted
+              ? 'Persistent storage is on — the browser won’t evict your data under storage pressure.'
+              : 'Persistent storage not granted yet — the browser could evict local data if space runs low. Installing the app to your home screen helps. Keep backups either way.'}
+          </p>
+        )}
       </section>
 
       {/* About */}
