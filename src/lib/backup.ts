@@ -7,9 +7,9 @@ import { generateSalt, deriveBackupKey, encrypt, decrypt } from '@/lib/crypto'
 
 // Local-first backups. JSON is the full, optionally-encrypted backup (entries +
 // goals + settings). CSV is an entries-only, spreadsheet-friendly export that is
-// never encrypted. Security-sensitive records (vault meta, key slots, passkeys)
-// are intentionally never included — a backup restored into a vault is
-// re-encrypted under that vault's own key.
+// never encrypted. Security-sensitive records (vault meta and key slots) are
+// intentionally never included — a backup restored into a vault is re-encrypted
+// under that vault's own key.
 
 export const BACKUP_VERSION = 1
 const BACKUP_APP = 'trellis'

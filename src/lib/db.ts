@@ -10,7 +10,6 @@ const AUTH_PREFS_KEY = 'auth-prefs'
 
 const DEFAULT_AUTH_PREFS: AuthPrefs = {
   stayLoggedIn: false,
-  preferredUnlockMethod: 'password',
 }
 
 let dbPromise: Promise<IDBPDatabase> | null = null
@@ -68,6 +67,18 @@ function isLegacyVaultMetaV2(value: unknown): value is LegacyVaultMetaV2 {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const meta = value as LegacyVaultMetaV2
   return meta.version === 2 && Array.isArray(meta.keySlots) && typeof meta.createdAt === 'string'
+}
+
+interface RawVersion3Meta {
+  version: 3
+  keySlots: Array<{ type?: string } & Record<string, unknown>>
+  [key: string]: unknown
+}
+
+function isVersion3Meta(value: unknown): value is RawVersion3Meta {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const meta = value as { version?: unknown; keySlots?: unknown }
+  return meta.version === 3 && Array.isArray(meta.keySlots)
 }
 
 function migrateLegacyVaultMeta(meta: LegacyVaultMeta): VaultMeta {
@@ -138,8 +149,19 @@ function getDB() {
 export async function getVaultMeta(): Promise<VaultMeta | undefined> {
   const db = await getDB()
   const raw = await db.get('meta', VAULT_META_KEY)
-  const parsed = VaultMetaSchema.safeParse(raw)
-  if (parsed.success) return parsed.data
+
+  if (isVersion3Meta(raw)) {
+    // A v3 vault saved by a build that supported biometric unlock may still
+    // carry passkey key slots. Drop any non-password slots so the vault opens
+    // with its password, and persist the cleaned shape.
+    const passwordSlots = raw.keySlots.filter((slot) => slot?.type === 'password')
+    const candidate =
+      passwordSlots.length === raw.keySlots.length ? raw : { ...raw, keySlots: passwordSlots }
+    const parsed = VaultMetaSchema.safeParse(candidate)
+    if (!parsed.success) return undefined
+    if (candidate !== raw) await saveVaultMeta(parsed.data)
+    return parsed.data
+  }
 
   if (isLegacyVaultMeta(raw)) {
     const migrated = migrateLegacyVaultMeta(raw)

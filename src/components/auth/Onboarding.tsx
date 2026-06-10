@@ -7,10 +7,10 @@ import { useAuth } from '@/hooks/useAuth'
 import { decodeBackupJSON, inspectBackupJSON, parseEntriesCSV, type BackupData } from '@/lib/backup'
 import { setPendingImport, clearPendingImport } from '@/lib/pendingImport'
 
-type Step = 'welcome' | 'restore-password' | 'choose' | 'password' | 'passkey'
+type Step = 'welcome' | 'restore-password' | 'password'
 
 export function Onboarding() {
-  const { createVaultWithPassword, createVaultWithPasskey, passkeySupport } = useAuth()
+  const { createVaultWithPassword } = useAuth()
   const [step, setStep] = useState<Step>('welcome')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -26,12 +26,11 @@ export function Onboarding() {
   const [restoreBusy, setRestoreBusy] = useState(false)
 
   const canSubmit = !loading && password.length >= 8 && password === confirm
-  const passkeyAvailable = passkeySupport === 'available' || passkeySupport === 'tentative'
 
   const proceedAfterSeed = () => {
     setRestoreError('')
     setRestorePw('')
-    setStep(passkeyAvailable ? 'choose' : 'password')
+    setStep('password')
   }
 
   const handleRestoreFile = async (file: File) => {
@@ -70,9 +69,9 @@ export function Onboarding() {
     }
   }
 
-  const validateRecoveryPassword = () => {
+  const validatePassword = () => {
     if (password.length < 8) {
-      setError('Recovery password must be at least 8 characters')
+      setError('Password must be at least 8 characters')
       return false
     }
     if (password !== confirm) {
@@ -83,7 +82,7 @@ export function Onboarding() {
   }
 
   const handleCreatePasswordVault = async () => {
-    if (!validateRecoveryPassword()) return
+    if (!validatePassword()) return
     setError('')
     setLoading(true)
     // Stage the backup so DataContext seeds it once the new vault unlocks.
@@ -96,25 +95,6 @@ export function Onboarding() {
         err instanceof Error && err.message
           ? err.message
           : 'Failed to create vault. Please try again.'
-      )
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleCreatePasskeyVault = async () => {
-    if (!validateRecoveryPassword()) return
-    setError('')
-    setLoading(true)
-    if (seed) setPendingImport(seed)
-    try {
-      await createVaultWithPasskey(password)
-    } catch (err) {
-      clearPendingImport()
-      setError(
-        err instanceof Error && err.message
-          ? err.message
-          : 'Failed to set up fingerprint / Face ID. Please try again.'
       )
     } finally {
       setLoading(false)
@@ -143,11 +123,7 @@ export function Onboarding() {
           Your data never leaves this device. Everything is encrypted locally.
         </div>
         <div className="w-full max-w-xs space-y-2">
-          <Button
-            size="lg"
-            className="w-full"
-            onClick={() => setStep(passkeyAvailable ? 'choose' : 'password')}
-          >
+          <Button size="lg" className="w-full" onClick={() => setStep('password')}>
             Get Started
           </Button>
           <Button
@@ -230,66 +206,24 @@ export function Onboarding() {
     </div>
   ) : null
 
-  if (step === 'choose') {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-6 p-6">
-        <div className="w-full max-w-sm space-y-6">
-          <div className="space-y-1 text-center">
-            <h2 className="font-serif text-2xl">Choose how to unlock Trellis</h2>
-            <p className="text-sm text-muted-foreground">
-              Use your device biometrics for quick access, or stick with a password-only vault.
-            </p>
-          </div>
-
-          {seedNotice}
-
-          <div className="space-y-3">
-            <Button className="w-full" size="lg" onClick={() => setStep('passkey')}>
-              Use fingerprint / Face ID
-            </Button>
-            <Button className="w-full" variant="outline" onClick={() => setStep('password')}>
-              Use password instead
-            </Button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  const isPasskeyStep = step === 'passkey'
-  const title = isPasskeyStep ? 'Create your secure vault' : 'Create your vault'
-  const description = isPasskeyStep
-    ? 'Set a recovery password, then enroll your device biometrics.'
-    : 'Choose a password to secure your data.'
-  const passwordLabel = isPasskeyStep ? 'Recovery password' : 'Password'
-  const passwordPlaceholder = isPasskeyStep ? 'At least 8 characters' : 'At least 8 characters'
-  const submitLabel = isPasskeyStep ? 'Set up fingerprint / Face ID' : 'Create vault'
-
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 p-6">
       <div className="w-full max-w-sm space-y-6">
         <div className="space-y-1 text-center">
-          <h2 className="font-serif text-2xl">{title}</h2>
-          <p className="text-sm text-muted-foreground">{description}</p>
+          <h2 className="font-serif text-2xl">Create your vault</h2>
+          <p className="text-sm text-muted-foreground">Choose a password to secure your data.</p>
         </div>
 
         <div className="space-y-4">
           {seedNotice}
 
-          {isPasskeyStep && (
-            <div className="rounded-xl border bg-card px-4 py-3 text-sm text-muted-foreground">
-              You&apos;ll unlock with your device biometrics, and this recovery password will stay
-              available if you ever need to fall back to password unlock.
-            </div>
-          )}
-
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="password">{passwordLabel}</Label>
+              <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder={passwordPlaceholder}
+                placeholder="At least 8 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoFocus
@@ -304,12 +238,7 @@ export function Onboarding() {
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key !== 'Enter' || !canSubmit) return
-                  if (isPasskeyStep) {
-                    void handleCreatePasskeyVault()
-                  } else {
-                    void handleCreatePasswordVault()
-                  }
+                  if (e.key === 'Enter' && canSubmit) void handleCreatePasswordVault()
                 }}
               />
             </div>
@@ -317,35 +246,16 @@ export function Onboarding() {
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <div className="space-y-2">
-            <Button
-              className="w-full"
-              onClick={isPasskeyStep ? handleCreatePasskeyVault : handleCreatePasswordVault}
-              disabled={!canSubmit}
-            >
-              {loading ? (
-                <>
-                  <Loader2 size={16} className="mr-2 animate-spin" />
-                  {isPasskeyStep ? 'Setting up…' : 'Creating vault…'}
-                </>
-              ) : (
-                submitLabel
-              )}
-            </Button>
-
-            {passkeyAvailable && (
-              <Button
-                className="w-full"
-                variant="ghost"
-                onClick={() => {
-                  setError('')
-                  setStep(isPasskeyStep ? 'password' : 'passkey')
-                }}
-              >
-                {isPasskeyStep ? 'Use password only instead' : 'Prefer fingerprint / Face ID?'}
-              </Button>
+          <Button className="w-full" onClick={handleCreatePasswordVault} disabled={!canSubmit}>
+            {loading ? (
+              <>
+                <Loader2 size={16} className="mr-2 animate-spin" />
+                Creating vault…
+              </>
+            ) : (
+              'Create vault'
             )}
-          </div>
+          </Button>
         </div>
       </div>
     </div>

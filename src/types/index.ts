@@ -2,7 +2,6 @@ export type ConsumptionType = 'flower' | 'vape' | 'edible' | 'concentrate' | 'ti
 export type SocialContext = 'solo' | 'social'
 export type VaultState = 'none' | 'locked' | 'unlocked'
 export type Theme = 'light' | 'dark' | 'system'
-export type UnlockMethod = 'password' | 'passkey'
 
 export interface LogEntry {
   id: string
@@ -44,23 +43,10 @@ export interface PasswordKeySlot {
   masterKeyIV: string
 }
 
-export interface PasskeyKeySlot {
-  id: string
-  type: 'passkey'
-  storage: 'largeBlob'
-  credentialId: string
-  encryptedMasterKey: string
-  masterKeyIV: string
-  label?: string
-  transports?: string[]
-  rpId?: string
-}
-
-export type KeySlot = PasswordKeySlot | PasskeyKeySlot
+export type KeySlot = PasswordKeySlot
 
 export interface AuthPrefs {
   stayLoggedIn: boolean
-  preferredUnlockMethod: UnlockMethod
 }
 
 export interface VaultMeta {
@@ -70,8 +56,6 @@ export interface VaultMeta {
   verifyCiphertext?: string // base64-encoded — sentinel encrypted with master key
   createdAt: string // ISO date string
 }
-
-export type VaultKeySlot = KeySlot
 
 export interface EncryptedRecord {
   id: string
