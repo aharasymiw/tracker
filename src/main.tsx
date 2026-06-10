@@ -1,5 +1,8 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+// Self-hosted variable font — no third-party font CDN, works offline, and keeps
+// CSP's font-src 'self' airtight.
+import '@fontsource-variable/geist'
 import './index.css'
 import App from './App.tsx'
 import { applyTheme, getStoredTheme } from '@/lib/theme'

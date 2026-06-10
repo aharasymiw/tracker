@@ -133,7 +133,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icons/*.png'],
+      includeAssets: ['favicon.png', 'apple-touch-icon.png', 'icons/*.png'],
       manifest: {
         name: 'Trellis',
         short_name: 'Trellis',
@@ -165,6 +165,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // Only the latin subset needs to work offline; the others stay
+        // fetchable online via their unicode-range @font-face rules.
+        globIgnores: ['**/geist-cyrillic-*.woff2', '**/geist-latin-ext-*.woff2'],
       },
     }),
   ],

@@ -20,6 +20,18 @@ describe('bufToBase64 / base64ToBuf', () => {
     const back = new Uint8Array(base64ToBuf(b64))
     expect(Array.from(back)).toEqual(Array.from(original))
   })
+
+  it('round-trips buffers larger than engine spread-argument limits', () => {
+    // Safari throws for String.fromCharCode(...arr) past ~64K elements; a large
+    // encrypted backup payload must not crash the export path.
+    const original = new Uint8Array(1_000_003).map((_, i) => i % 256)
+    const b64 = bufToBase64(original.buffer)
+    const back = new Uint8Array(base64ToBuf(b64))
+    expect(back.length).toBe(original.length)
+    expect(back[0]).toBe(original[0])
+    expect(back[500_000]).toBe(original[500_000])
+    expect(back[1_000_002]).toBe(original[1_000_002])
+  })
 })
 
 describe('bufToHex / hexToBuf', () => {

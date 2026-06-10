@@ -21,6 +21,7 @@ import {
   saveSessionKey,
   saveVaultMeta,
 } from '@/lib/db'
+import { requestPersistentStorage } from '@/lib/storage'
 
 const SESSION_SENTINEL = 'trellis-session-ok'
 const STAY_LOGGED_IN_STORAGE_KEY = 'trellis-stay-logged-in'
@@ -114,6 +115,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       syncVaultMeta(meta)
       setVaultState('unlocked')
       await persistKeyIfStayLoggedIn(masterKey)
+      // Fire-and-forget: ask the browser not to evict our IndexedDB data.
+      void requestPersistentStorage()
     },
     [persistKeyIfStayLoggedIn, syncVaultMeta]
   )
@@ -175,6 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       masterKeyRef.current = usableKey
       setMasterKeyVersion((value) => value + 1)
       setVaultState('unlocked')
+      void requestPersistentStorage()
     },
     [createPasswordSlot, syncAuthPrefs, syncVaultMeta]
   )
@@ -287,6 +291,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             masterKeyRef.current = sessionKey
             setMasterKeyVersion((value) => value + 1)
             setVaultState('unlocked')
+            void requestPersistentStorage()
             return
           }
         } catch {
