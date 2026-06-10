@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { startOfDay } from 'date-fns'
 import { BookOpen } from 'lucide-react'
+import { BackupNudge } from '@/components/BackupNudge'
 import { DayGroup } from '@/components/journal/DayGroup'
 import { EntryEditor } from '@/components/journal/EntryEditor'
 import { useEntries } from '@/hooks/useEntries'
@@ -33,6 +34,7 @@ export default function JournalPage() {
 
   return (
     <>
+      <BackupNudge />
       <div className="pb-4">
         {grouped.map(({ date, entries: dayEntries }) => (
           <DayGroup

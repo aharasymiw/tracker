@@ -1,73 +1,44 @@
-# React + TypeScript + Vite
+# Trellis
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A local-first, encrypted cannabis consumption tracker, built to help you understand your patterns and cut back deliberately. Live at [trellis-2d9.pages.dev](https://trellis-2d9.pages.dev/) (moving to `app.lesslater.com`).
 
-Currently, two official plugins are available:
+## Privacy model
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+**Your data never leaves your device.** There is no backend — Cloudflare Pages serves static files, and the app runs entirely in your browser:
 
-## React Compiler
+- All records (entries, goals, settings) are encrypted at rest in IndexedDB with **AES-256-GCM**. The master key is wrapped by a key derived from your password (**PBKDF2, 600k iterations, SHA-256**) and held non-extractable in memory only while unlocked.
+- The deployed app makes **zero third-party requests** (fonts are self-hosted), and a Content-Security-Policy with `connect-src 'self'` makes that browser-enforced.
+- No accounts, no analytics, no sync. Moving devices = export a backup file, transfer it yourself, import on the other device.
+- Lost password = lost data, by design. **Export backups regularly** (Settings → Data; optionally password-encrypted).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Stack
 
-## Expanding the ESLint configuration
+React 19 + TypeScript PWA, built with [Vite+](https://viteplus.dev/) (`vp` CLI). Tailwind v4 (CSS-first), React Router v7, Zod validation on every encrypted read/write, `idb` for IndexedDB, hand-rolled SVG charts, Workbox precaching for offline.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Development
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install          # or: vp install
+npm run dev          # dev server at localhost:5173
+vp check --fix       # lint (oxlint) + format (oxfmt) + types, auto-fixing
+vp test run          # unit + integration tests (Vitest, jsdom + fake-indexeddb)
+npx playwright test  # e2e (starts its own dev server on :4173)
+npm run build        # vp check && vp build → dist/
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Key layout:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+| Path                           | Purpose                                         |
+| ------------------------------ | ----------------------------------------------- |
+| `src/lib/crypto.ts`            | All WebCrypto: PBKDF2, AES-GCM, key wrap/unwrap |
+| `src/lib/db.ts`                | IndexedDB: vault meta + encrypted CRUD          |
+| `src/lib/schemas.ts`           | Zod schemas (validated on write _and_ read)     |
+| `src/contexts/AuthContext.tsx` | Vault state machine, auto-lock, cross-tab lock  |
+| `src/contexts/DataContext.tsx` | Encrypted data provider                         |
+| `src/lib/backup.ts`            | JSON (plain/encrypted) + CSV export/import      |
+| `public/_headers`              | CSP and security headers served by Cloudflare   |
+| `scripts/icons/`               | App icon generator (canvas → PNG at all sizes)  |
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Deployment
+
+Pushes to `main` run checks + tests in GitHub Actions, then deploy to Cloudflare Pages. Manual deploy: `npm run deploy`.
