@@ -29,6 +29,16 @@ const DEFAULT_AUTH_PREFS: AuthPrefs = {
   stayLoggedIn: false,
 }
 
+// Same-origin channel that propagates an explicit lock to every open tab.
+// Auto-lock stays per-tab: an idle tab locking itself must not yank the vault
+// out from under a tab the user is actively working in.
+const LOCK_CHANNEL_NAME = 'trellis-lock'
+
+// User-input events that count as "activity" for the idle timer. Passive and
+// debounced so the listeners cost nothing on busy pages.
+const ACTIVITY_EVENTS = ['pointerdown', 'keydown', 'wheel', 'touchstart', 'mousemove'] as const
+const ACTIVITY_DEBOUNCE_MS = 10_000
+
 function readStayLoggedInCache() {
   try {
     return localStorage.getItem(STAY_LOGGED_IN_STORAGE_KEY) === 'true'
@@ -58,6 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const lockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const vaultMetaRef = useRef<VaultMeta | null>(null)
   const authPrefsRef = useRef<AuthPrefs>(DEFAULT_AUTH_PREFS)
+  const lockChannelRef = useRef<BroadcastChannel | null>(null)
 
   const clearLockTimer = useCallback(() => {
     if (lockTimerRef.current) clearTimeout(lockTimerRef.current)
@@ -121,7 +132,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [persistKeyIfStayLoggedIn, syncVaultMeta]
   )
 
-  const lock = useCallback(() => {
+  // Lock this tab only — used for auto-lock and when another tab broadcasts.
+  const lockLocal = useCallback(() => {
     masterKeyRef.current = null
     setMasterKeyVersion((value) => value + 1)
     setVaultState(vaultMetaRef.current ? 'locked' : 'none')
@@ -129,11 +141,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     void clearSessionKey()
   }, [clearLockTimer])
 
+  // Explicit lock (header button): lock every open tab.
+  const lock = useCallback(() => {
+    lockLocal()
+    lockChannelRef.current?.postMessage('lock')
+  }, [lockLocal])
+
   const startLockTimer = useCallback(() => {
     if (authPrefsRef.current.stayLoggedIn) return
     clearLockTimer()
-    lockTimerRef.current = setTimeout(() => lock(), autoLockMinutes * 60 * 1000)
-  }, [autoLockMinutes, clearLockTimer, lock])
+    lockTimerRef.current = setTimeout(() => lockLocal(), autoLockMinutes * 60 * 1000)
+  }, [autoLockMinutes, clearLockTimer, lockLocal])
 
   const setAutoLockMinutes = useCallback((minutes: number) => {
     setAutoLockMinutesState(minutes)
@@ -315,18 +333,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [syncAuthPrefs, syncVaultMeta])
 
+  // Auto-lock: one countdown that restarts on any user activity and on tab
+  // show/hide. It covers both "tab left hidden" and "tab visible but idle" —
+  // previously a visible desktop tab never locked. Disabled by stay-logged-in
+  // (startLockTimer no-ops).
   useEffect(() => {
-    const handleVisibility = () => {
-      if (document.hidden && vaultState === 'unlocked') {
-        startLockTimer()
-      } else {
-        clearLockTimer()
-      }
+    if (vaultState !== 'unlocked') return
+
+    startLockTimer()
+
+    let lastReset = Date.now()
+    const handleActivity = () => {
+      if (document.hidden) return
+      const now = Date.now()
+      if (now - lastReset < ACTIVITY_DEBOUNCE_MS) return
+      lastReset = now
+      startLockTimer()
     }
 
+    const handleVisibility = () => {
+      // Hiding starts the countdown; returning counts as activity.
+      lastReset = Date.now()
+      startLockTimer()
+    }
+
+    for (const event of ACTIVITY_EVENTS) {
+      window.addEventListener(event, handleActivity, { passive: true })
+    }
     document.addEventListener('visibilitychange', handleVisibility)
-    return () => document.removeEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      for (const event of ACTIVITY_EVENTS) {
+        window.removeEventListener(event, handleActivity)
+      }
+      document.removeEventListener('visibilitychange', handleVisibility)
+      clearLockTimer()
+    }
   }, [clearLockTimer, startLockTimer, vaultState])
+
+  // Cross-tab lock propagation. BroadcastChannel only reaches same-origin
+  // contexts and never carries key material — just the instruction to lock.
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return
+    const channel = new BroadcastChannel(LOCK_CHANNEL_NAME)
+    channel.onmessage = (event) => {
+      if (event.data === 'lock') lockLocal()
+    }
+    lockChannelRef.current = channel
+    return () => {
+      lockChannelRef.current = null
+      channel.close()
+    }
+  }, [lockLocal])
 
   void masterKeyVersion
 

@@ -16,6 +16,7 @@ import { useData } from '@/hooks/useData'
 import { format } from 'date-fns'
 import { clearAllData } from '@/lib/db'
 import { serializePlainBackup, serializeEncryptedBackup, serializeEntriesCSV } from '@/lib/backup'
+import { getLastBackupAt, recordBackupCompleted } from '@/lib/backupReminder'
 import { ImportData } from '@/components/settings/ImportData'
 
 function download(filename: string, content: string, mime: string) {
@@ -44,6 +45,8 @@ export function DataExport() {
 
   // CSV export warning dialog
   const [csvOpen, setCsvOpen] = useState(false)
+
+  const [lastBackupAt, setLastBackupAt] = useState<Date | null>(getLastBackupAt)
 
   const today = () => format(new Date(), 'yyyy-MM-dd')
   const isEmpty = entries.length === 0 && goals.length === 0
@@ -74,6 +77,9 @@ export function DataExport() {
         ? await serializeEncryptedBackup(data, pw)
         : serializePlainBackup(data)
       download(`trellis-backup-${today()}.json`, content, 'application/json')
+      // Only full JSON backups count for the reminder — CSV omits goals/settings.
+      recordBackupCompleted()
+      setLastBackupAt(getLastBackupAt())
       setJsonOpen(false)
     } finally {
       setExporting(false)
@@ -117,6 +123,11 @@ export function DataExport() {
           <Download size={14} className="mr-2" /> Export CSV
         </Button>
       </div>
+
+      <p className="text-xs text-muted-foreground">
+        Last full backup:{' '}
+        {lastBackupAt ? format(lastBackupAt, 'MMM d, yyyy · HH:mm') : 'never — export one above'}
+      </p>
 
       <ImportData />
 
