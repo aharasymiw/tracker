@@ -1,11 +1,10 @@
 # Trellis — crawler policy
-# Search indexing is welcome from Google, Bing, Kagi, DuckDuckGo,
-# Yandex, Baidu, and Brave, plus the Internet Archive (which also
-# handles archiving for links cited on Wikipedia — Wikipedia itself has
-# no crawler). Every other crawler — explicitly including AI training
-# and scraping bots — is disallowed. robots.txt is honor-system; once
-# the app moves behind a zone we control, this policy is also enforced
-# at the edge.
+# Search indexing is welcome from Google, Bing, Kagi, and DuckDuckGo,
+# plus the Internet Archive (which also handles archiving for links
+# cited on Wikipedia — Wikipedia itself has no crawler). Every other
+# crawler — explicitly including AI training and scraping bots — is
+# disallowed. robots.txt is honor-system; once the app moves behind a
+# zone we control, this policy is also enforced at the edge.
 
 User-agent: Googlebot
 Allow: /
@@ -17,17 +16,6 @@ User-agent: Kagibot
 Allow: /
 
 User-agent: DuckDuckBot
-Allow: /
-
-# "Yandex" is Yandex's documented token for all of its search robots,
-# including the renderer that fetches JS/CSS — needed to index an SPA.
-User-agent: Yandex
-Allow: /
-
-User-agent: Baiduspider
-Allow: /
-
-User-agent: Bravebot
 Allow: /
 
 # Internet Archive / Wayback Machine
