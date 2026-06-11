@@ -1,0 +1,58 @@
+# Less Lately (www) — crawler policy, same as the app.
+# Search indexing is welcome from Google, Bing, Kagi, and DuckDuckGo,
+# plus the Internet Archive (which also handles archiving for links
+# cited on Wikipedia — Wikipedia itself has no crawler). Every other
+# crawler — explicitly including AI training and scraping bots — is
+# disallowed. robots.txt is honor-system; this zone is ours, so the
+# policy can also be enforced at the edge.
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Kagibot
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+# Internet Archive / Wayback Machine
+User-agent: ia_archiver
+Allow: /
+
+User-agent: archive.org_bot
+Allow: /
+
+# AI crawlers and assistant fetchers, named explicitly (the catch-all
+# below covers them too; naming them documents intent). DuckAssistBot
+# is DuckDuckGo's separate AI crawler — search stays allowed above.
+User-agent: GPTBot
+User-agent: ChatGPT-User
+User-agent: OAI-SearchBot
+User-agent: ClaudeBot
+User-agent: Claude-User
+User-agent: Claude-SearchBot
+User-agent: anthropic-ai
+User-agent: Google-Extended
+User-agent: Applebot
+User-agent: Applebot-Extended
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: DuckAssistBot
+User-agent: CCBot
+User-agent: Bytespider
+User-agent: meta-externalagent
+User-agent: FacebookBot
+User-agent: Amazonbot
+User-agent: cohere-ai
+User-agent: AI2Bot
+User-agent: Diffbot
+Disallow: /
+
+# Everyone else
+User-agent: *
+Disallow: /
+
+Sitemap: https://www.lesslately.com/sitemap.xml

@@ -10,7 +10,8 @@
     "lint": "vp check",
     "preview": "vp preview",
     "test": "vp test run",
-    "deploy": "vp check && vp build && npx wrangler pages deploy dist"
+    "deploy": "vp check && vp build && npx wrangler pages deploy dist",
+    "deploy:www": "npx wrangler pages deploy www --project-name=lesslately-www"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

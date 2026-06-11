@@ -28,17 +28,18 @@ npm run build        # vp check && vp build → dist/
 
 Key layout:
 
-| Path                           | Purpose                                         |
-| ------------------------------ | ----------------------------------------------- |
-| `src/lib/crypto.ts`            | All WebCrypto: PBKDF2, AES-GCM, key wrap/unwrap |
-| `src/lib/db.ts`                | IndexedDB: vault meta + encrypted CRUD          |
-| `src/lib/schemas.ts`           | Zod schemas (validated on write _and_ read)     |
-| `src/contexts/AuthContext.tsx` | Vault state machine, auto-lock, cross-tab lock  |
-| `src/contexts/DataContext.tsx` | Encrypted data provider                         |
-| `src/lib/backup.ts`            | JSON (plain/encrypted) + CSV export/import      |
-| `public/_headers`              | CSP and security headers served by Cloudflare   |
-| `scripts/icons/`               | App icon generator (canvas → PNG at all sizes)  |
+| Path                           | Purpose                                           |
+| ------------------------------ | ------------------------------------------------- |
+| `src/lib/crypto.ts`            | All WebCrypto: PBKDF2, AES-GCM, key wrap/unwrap   |
+| `src/lib/db.ts`                | IndexedDB: vault meta + encrypted CRUD            |
+| `src/lib/schemas.ts`           | Zod schemas (validated on write _and_ read)       |
+| `src/contexts/AuthContext.tsx` | Vault state machine, auto-lock, cross-tab lock    |
+| `src/contexts/DataContext.tsx` | Encrypted data provider                           |
+| `src/lib/backup.ts`            | JSON (plain/encrypted) + CSV export/import        |
+| `public/_headers`              | CSP and security headers served by Cloudflare     |
+| `scripts/icons/`               | App icon generator (canvas → PNG at all sizes)    |
+| `www/`                         | Landing page (www.lesslately.com) — static, no JS |
 
 ## Deployment
 
-Pushes to `main` run checks + tests in GitHub Actions, then deploy to Cloudflare Pages. Manual deploy: `npm run deploy`.
+Pushes to `main` run checks + tests in GitHub Actions, then deploy to Cloudflare Pages: the app (`dist/` → `lesslately` project) and the landing page (`www/` → `lesslately-www` project, served at `www.lesslately.com`). Manual deploys: `npm run deploy` (app), `npm run deploy:www` (landing page).
