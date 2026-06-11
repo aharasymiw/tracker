@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Less Lately — private, local-first cannabis tracking</title>
+    <meta
+      name="description"
+      content="Track your cannabis use, set goals, and cut back deliberately. Free, no account, works offline — your data stays encrypted on your device."
+    />
+    <link rel="canonical" href="https://www.lesslately.com/" />
+    <meta name="robots" content="index, follow" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Less Lately" />
+    <meta property="og:title" content="Less Lately — private, local-first cannabis tracking" />
+    <meta
+      property="og:description"
+      content="Track your cannabis use, set goals, and cut back deliberately. Free, no account, works offline — your data stays encrypted on your device."
+    />
+    <meta property="og:url" content="https://www.lesslately.com/" />
+    <meta property="og:image" content="https://www.lesslately.com/og.png" />
+    <meta name="twitter:card" content="summary" />
+
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#2D5F3C" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#131A14" media="(prefers-color-scheme: dark)" />
+
+    <link
+      rel="preload"
+      href="/fonts/geist-latin-wght-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Less Lately",
+        "url": "https://app.lesslately.com/",
+        "applicationCategory": "HealthApplication",
+        "operatingSystem": "Any (web browser)",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "description": "A private, local-first way to track cannabis use, set goals, and cut back deliberately. All data stays encrypted on the user's device."
+      }
+    </script>
+
+    <style>
+      /* Palette and type lifted from the app (src/index.css) so the landing
+         page and the app read as one product. */
+      @font-face {
+        font-family: 'Geist Variable';
+        font-style: normal;
+        font-display: swap;
+        font-weight: 100 900;
+        src: url('/fonts/geist-latin-wght-normal.woff2') format('woff2');
+      }
+
+      :root {
+        --radius: 0.625rem;
+        --background: #faf8f5;
+        --foreground: #2c2416;
+        --card: #ffffff;
+        --primary: #2d5f3c;
+        --primary-foreground: #ffffff;
+        --secondary: #f0ede8;
+        --muted: #e8e4dd;
+        --muted-foreground: #8fa889;
+        --accent: #d4913b;
+        --border: #e2ddd5;
+        --leaf: #2d5f3c;
+        --dot: #d4913b;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --background: #131a14;
+          --foreground: #f0ede8;
+          --card: #1a2318;
+          --primary: #7db88e;
+          --primary-foreground: #131a14;
+          --secondary: #2a3a2c;
+          --muted: #2a3a2c;
+          --muted-foreground: #5a7a5e;
+          --accent: #e8a94d;
+          --border: #2a3a2c;
+          --leaf: #7db88e;
+          --dot: #e8a94d;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--background);
+        color: var(--foreground);
+        font-family: 'Geist Variable', system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        line-height: 1.6;
+      }
+
+      h1,
+      h2,
+      h3 {
+        /* The app's "serif" brand voice: Geist at semibold. */
+        font-weight: 600;
+        line-height: 1.15;
+        margin: 0 0 0.5em;
+      }
+
+      a {
+        color: var(--primary);
+      }
+
+      .wrap {
+        max-width: 60rem;
+        margin: 0 auto;
+        padding: 0 1.25rem;
+      }
+
+      header.site {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.1rem 0;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        font-weight: 600;
+        font-size: 1.05rem;
+        color: var(--foreground);
+        text-decoration: none;
+      }
+
+      .btn {
+        display: inline-block;
+        background: var(--primary);
+        color: var(--primary-foreground);
+        font-weight: 600;
+        text-decoration: none;
+        border-radius: var(--radius);
+        padding: 0.55rem 1.1rem;
+      }
+
+      .btn:hover {
+        filter: brightness(1.08);
+      }
+
+      .btn.big {
+        font-size: 1.15rem;
+        padding: 0.85rem 1.8rem;
+      }
+
+      /* Hero */
+      .hero {
+        text-align: center;
+        padding: 3.5rem 0 4rem;
+      }
+
+      .hero svg.mark {
+        margin-bottom: 1.25rem;
+      }
+
+      .hero h1 {
+        font-size: clamp(2rem, 5.5vw, 3.25rem);
+        letter-spacing: -0.02em;
+      }
+
+      .hero .sub {
+        max-width: 38rem;
+        margin: 0 auto 2rem;
+        font-size: 1.125rem;
+        color: var(--foreground);
+        opacity: 0.85;
+      }
+
+      .micro {
+        margin-top: 0.9rem;
+        font-size: 0.875rem;
+        color: var(--muted-foreground);
+      }
+
+      section {
+        padding: 3rem 0;
+      }
+
+      section h2 {
+        font-size: clamp(1.5rem, 3.5vw, 2rem);
+        letter-spacing: -0.01em;
+        text-align: center;
+        margin-bottom: 1.75rem;
+      }
+
+      /* Feature cards */
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: calc(var(--radius) + 4px);
+        padding: 1.4rem;
+      }
+
+      .card h3 {
+        font-size: 1.1rem;
+        margin-bottom: 0.4rem;
+      }
+
+      .card p {
+        margin: 0;
+        font-size: 0.95rem;
+        opacity: 0.85;
+      }
+
+      /* Privacy */
+      .privacy {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: calc(var(--radius) + 6px);
+        padding: 2rem 2rem 1.5rem;
+      }
+
+      .privacy h2 {
+        text-align: left;
+        margin-bottom: 0.75rem;
+      }
+
+      .privacy > p {
+        margin: 0 0 1.25rem;
+        max-width: 44rem;
+        opacity: 0.85;
+      }
+
+      .privacy ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.8rem 2rem;
+      }
+
+      .privacy li {
+        padding-left: 1.6rem;
+        position: relative;
+        font-size: 0.95rem;
+      }
+
+      .privacy li::before {
+        content: '✓';
+        position: absolute;
+        left: 0;
+        color: var(--primary);
+        font-weight: 600;
+      }
+
+      .privacy li strong {
+        font-weight: 600;
+      }
+
+      /* Steps */
+      ol.steps {
+        list-style: none;
+        counter-reset: step;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+      }
+
+      ol.steps li {
+        counter-increment: step;
+        background: var(--secondary);
+        border-radius: calc(var(--radius) + 4px);
+        padding: 1.4rem;
+        font-size: 0.95rem;
+      }
+
+      ol.steps li::before {
+        content: counter(step);
+        display: block;
+        width: 1.9rem;
+        height: 1.9rem;
+        line-height: 1.9rem;
+        text-align: center;
+        border-radius: 50%;
+        background: var(--primary);
+        color: var(--primary-foreground);
+        font-weight: 600;
+        margin-bottom: 0.7rem;
+      }
+
+      ol.steps strong {
+        display: block;
+        margin-bottom: 0.2rem;
+      }
+
+      /* FAQ */
+      .faq {
+        max-width: 44rem;
+        margin: 0 auto;
+      }
+
+      details {
+        border-bottom: 1px solid var(--border);
+        padding: 0.9rem 0;
+      }
+
+      summary {
+        cursor: pointer;
+        font-weight: 600;
+        list-style-position: outside;
+      }
+
+      details p {
+        margin: 0.6rem 0 0;
+        font-size: 0.95rem;
+        opacity: 0.85;
+      }
+
+      /* Final CTA */
+      .cta-final {
+        text-align: center;
+        padding: 3.5rem 0 4.5rem;
+      }
+
+      footer {
+        border-top: 1px solid var(--border);
+        padding: 2rem 0 2.5rem;
+        font-size: 0.875rem;
+        color: var(--muted-foreground);
+      }
+
+      footer nav {
+        display: flex;
+        gap: 1.25rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.75rem;
+      }
+
+      footer a {
+        color: inherit;
+      }
+
+      footer p {
+        margin: 0.25rem 0;
+      }
+
+      @media (max-width: 44rem) {
+        .cards,
+        ol.steps,
+        .privacy ul {
+          grid-template-columns: 1fr;
+        }
+
+        .privacy {
+          padding: 1.5rem 1.25rem 1.25rem;
+        }
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        html {
+          scroll-behavior: smooth;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="site">
+        <a class="brand" href="/">
+          <svg width="26" height="26" viewBox="-55 -56 110 118" aria-hidden="true">
+            <use href="#leaf" fill="var(--leaf)" />
+          </svg>
+          Less Lately
+        </a>
+        <a class="btn" href="https://app.lesslately.com/">Open the app</a>
+      </header>
+
+      <main>
+        <!-- Hero -->
+        <section class="hero">
+          <!-- The app icon's motif: a leaf dissolving into dots, drifting away. -->
+          <svg
+            class="mark"
+            width="96"
+            height="96"
+            viewBox="-55 -60 130 126"
+            role="img"
+            aria-label="A leaf dissolving into drifting dots"
+          >
+            <defs>
+              <symbol id="leaf" overflow="visible">
+                <rect x="-1.25" y="0" width="2.5" height="15" rx="1.25" />
+                <g>
+                  <path d="M0 0 C-5.75 -12.5 -4.89 -35 0 -50 C4.89 -35 5.75 -12.5 0 0 Z" />
+                  <path
+                    transform="rotate(-26)"
+                    d="M0 0 C-5.25 -11.75 -4.46 -32.9 0 -47 C4.46 -32.9 5.25 -11.75 0 0 Z"
+                  />
+                  <path
+                    transform="rotate(26)"
+                    d="M0 0 C-5.25 -11.75 -4.46 -32.9 0 -47 C4.46 -32.9 5.25 -11.75 0 0 Z"
+                  />
+                  <path
+                    transform="rotate(-52)"
+                    d="M0 0 C-4.5 -9.5 -3.83 -26.6 0 -38 C3.83 -26.6 4.5 -9.5 0 0 Z"
+                  />
+                  <path
+                    transform="rotate(52)"
+                    d="M0 0 C-4.5 -9.5 -3.83 -26.6 0 -38 C3.83 -26.6 4.5 -9.5 0 0 Z"
+                  />
+                  <path
+                    transform="rotate(-82)"
+                    d="M0 0 C-3.5 -6 -2.98 -16.8 0 -24 C2.98 -16.8 3.5 -6 0 0 Z"
+                  />
+                  <path
+                    transform="rotate(82)"
+                    d="M0 0 C-3.5 -6 -2.98 -16.8 0 -24 C2.98 -16.8 3.5 -6 0 0 Z"
+                  />
+                </g>
+              </symbol>
+            </defs>
+            <use href="#leaf" fill="var(--leaf)" />
+            <g fill="var(--dot)">
+              <circle cx="38" cy="-34" r="3.4" />
+              <circle cx="48" cy="-44" r="2.6" opacity="0.85" />
+              <circle cx="44" cy="-22" r="2.2" opacity="0.8" />
+              <circle cx="56" cy="-33" r="1.9" opacity="0.65" />
+              <circle cx="62" cy="-48" r="1.5" opacity="0.5" />
+              <circle cx="66" cy="-24" r="1.3" opacity="0.4" />
+              <circle cx="71" cy="-38" r="1.1" opacity="0.3" />
+            </g>
+          </svg>
+
+          <h1>See your patterns.<br />Cut back deliberately.</h1>
+          <p class="sub">
+            Less Lately is a private way to track your cannabis use — set goals, watch your
+            patterns, and ease off at your own pace. Everything stays encrypted on your device. No
+            account, no cloud, no judgment.
+          </p>
+          <a class="btn big" href="https://app.lesslately.com/">Start now — it’s free</a>
+          <p class="micro">No sign-up · Works offline · Installs like an app</p>
+        </section>
+
+        <!-- Features -->
+        <section aria-labelledby="features-h">
+          <h2 id="features-h">Built for honest self-knowledge</h2>
+          <div class="cards">
+            <div class="card">
+              <h3>Log in seconds</h3>
+              <p>
+                What, how much, and the context — solo or social — in a couple of taps. Built for
+                the moment, not for homework.
+              </p>
+            </div>
+            <div class="card">
+              <h3>Insights without judgment</h3>
+              <p>
+                Day-by-day charts surface your real patterns — trends, frequency, time of day. No
+                streak-shaming, no gamification.
+              </p>
+            </div>
+            <div class="card">
+              <h3>Goals that flex</h3>
+              <p>
+                Set a ceiling that fits your life, or use reduction mode to taper gradually.
+                Progress you define, at a pace you choose.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Privacy -->
+        <section aria-labelledby="privacy-h">
+          <div class="privacy">
+            <h2 id="privacy-h">Private by architecture, not by promise</h2>
+            <p>
+              There is no server to trust — the app is static files, and your data lives encrypted
+              in your own browser. We couldn’t read it if we wanted to.
+            </p>
+            <ul>
+              <li>
+                <strong>Encrypted on your device</strong> — AES-256-GCM at rest, key derived from
+                your password (PBKDF2, 600k iterations)
+              </li>
+              <li>
+                <strong>No accounts, no analytics, no sync</strong> — nothing identifies you,
+                nothing phones home
+              </li>
+              <li>
+                <strong>Zero third-party requests</strong> — browser-enforced by a strict
+                Content-Security-Policy
+              </li>
+              <li>
+                <strong>You hold the backups</strong> — export JSON (optionally password-encrypted)
+                or CSV, and move devices by moving a file
+              </li>
+              <li>
+                <strong>Open source</strong> —
+                <a href="https://github.com/aharasymiw/lesslately">read the code on GitHub</a>
+              </li>
+              <li>
+                <strong>Lost password = lost data</strong> — by design; nobody can reset what nobody
+                else holds
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- How it works -->
+        <section aria-labelledby="how-h">
+          <h2 id="how-h">Up and running in a minute</h2>
+          <ol class="steps">
+            <li>
+              <strong>Open the app</strong>
+              Create a vault with a password. That password encrypts everything, right on your
+              device.
+            </li>
+            <li>
+              <strong>Make it yours</strong>
+              Add it to your home screen — it installs like an app and works fully offline.
+            </li>
+            <li>
+              <strong>Log as you go</strong>
+              Set a goal if you like, then watch your patterns come into focus, day by day.
+            </li>
+          </ol>
+        </section>
+
+        <!-- FAQ -->
+        <section aria-labelledby="faq-h">
+          <h2 id="faq-h">Questions, answered</h2>
+          <div class="faq">
+            <details>
+              <summary>Is my data really private?</summary>
+              <p>
+                Yes — structurally. Less Lately has no backend: the site you load is static files,
+                and every record is encrypted in your browser’s local storage with a key derived
+                from your password. A strict Content-Security-Policy means the app can’t talk to any
+                third party, and the code is open source so you can verify all of it.
+              </p>
+            </details>
+            <details>
+              <summary>What does it cost?</summary>
+              <p>
+                It’s free. No subscription, no premium tier, no ads — and nothing to sell, because
+                we hold none of your data.
+              </p>
+            </details>
+            <details>
+              <summary>Do I need an account?</summary>
+              <p>
+                No. You create a password that encrypts a private vault on your device. There’s no
+                email, no profile, and nothing stored anywhere else.
+              </p>
+            </details>
+            <details>
+              <summary>What happens if I lose my device or password?</summary>
+              <p>
+                Your data lives only on your device, so a lost device — or a forgotten password —
+                means lost data. The app nudges you to export backups (optionally
+                password-encrypted) so you always hold a copy you control.
+              </p>
+            </details>
+            <details>
+              <summary>Is this medical advice?</summary>
+              <p>
+                No. Less Lately is a self-tracking tool for people who want to understand and change
+                their own habits. For health concerns, talk to a professional.
+              </p>
+            </details>
+          </div>
+        </section>
+
+        <!-- Final CTA -->
+        <section class="cta-final">
+          <h2>Ready for less?</h2>
+          <a class="btn big" href="https://app.lesslately.com/">Open Less Lately</a>
+          <p class="micro">Free · Private · Yours</p>
+        </section>
+      </main>
+
+      <footer>
+        <nav>
+          <a href="https://app.lesslately.com/">Open the app</a>
+          <a href="https://github.com/aharasymiw/lesslately">Source on GitHub</a>
+        </nav>
+        <p>Less Lately is a self-tracking tool, not medical advice.</p>
+        <p>No cookies, no analytics — this page doesn’t track you either.</p>
+      </footer>
+    </div>
+  </body>
+</html>
