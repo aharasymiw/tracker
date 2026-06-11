@@ -1,8 +1,11 @@
 # Trellis — crawler policy
-# Search indexing is welcome from Google, Bing, and Kagi only.
-# Every other crawler — explicitly including AI training and scraping
-# bots — is disallowed. robots.txt is honor-system; once the app moves
-# behind a zone we control, this policy is also enforced at the edge.
+# Search indexing is welcome from Google, Bing, Kagi, DuckDuckGo,
+# Yandex, Baidu, and Brave, plus the Internet Archive (which also
+# handles archiving for links cited on Wikipedia — Wikipedia itself has
+# no crawler). Every other crawler — explicitly including AI training
+# and scraping bots — is disallowed. robots.txt is honor-system; once
+# the app moves behind a zone we control, this policy is also enforced
+# at the edge.
 
 User-agent: Googlebot
 Allow: /
@@ -13,8 +16,30 @@ Allow: /
 User-agent: Kagibot
 Allow: /
 
+User-agent: DuckDuckBot
+Allow: /
+
+# "Yandex" is Yandex's documented token for all of its search robots,
+# including the renderer that fetches JS/CSS — needed to index an SPA.
+User-agent: Yandex
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+User-agent: Bravebot
+Allow: /
+
+# Internet Archive / Wayback Machine
+User-agent: ia_archiver
+Allow: /
+
+User-agent: archive.org_bot
+Allow: /
+
 # AI crawlers and assistant fetchers, named explicitly (the catch-all
-# below covers them too; naming them documents intent).
+# below covers them too; naming them documents intent). DuckAssistBot
+# is DuckDuckGo's separate AI crawler — search stays allowed above.
 User-agent: GPTBot
 User-agent: ChatGPT-User
 User-agent: OAI-SearchBot
@@ -27,6 +52,7 @@ User-agent: Applebot
 User-agent: Applebot-Extended
 User-agent: PerplexityBot
 User-agent: Perplexity-User
+User-agent: DuckAssistBot
 User-agent: CCBot
 User-agent: Bytespider
 User-agent: meta-externalagent
