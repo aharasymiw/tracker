@@ -1,4 +1,4 @@
-# Trellis — crawler policy
+# Less Lately — crawler policy
 # Search indexing is welcome from Google, Bing, Kagi, and DuckDuckGo,
 # plus the Internet Archive (which also handles archiving for links
 # cited on Wikipedia — Wikipedia itself has no crawler). Every other

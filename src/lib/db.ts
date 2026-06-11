@@ -1,8 +1,11 @@
-import { openDB, type IDBPDatabase } from 'idb'
+import { deleteDB, openDB, type IDBPDatabase } from 'idb'
 import type { AuthPrefs, EncryptedRecord, VaultMeta } from '@/types'
 import { AuthPrefsSchema, VaultMetaSchema } from '@/lib/schemas'
 
-const DB_NAME = 'tracker-vault'
+const DB_NAME = 'lesslately-vault'
+// Database name before the Trellis → Less Lately rename. IndexedDB has no
+// rename, so the first open copies it into DB_NAME and deletes it.
+const LEGACY_DB_NAME = 'tracker-vault'
 const DB_VERSION = 1
 const VAULT_META_KEY = 'vault'
 const SESSION_KEY = 'session-key'
@@ -121,27 +124,77 @@ function migrateLegacyVaultMetaV2(meta: LegacyVaultMetaV2): VaultMeta {
   }
 }
 
+// One-time copy of the pre-rename database. Runs on every open but exits
+// cheaply once the legacy database is gone. Copy first, delete after: if
+// anything fails mid-way the legacy data stays put and the next open retries.
+async function migrateLegacyDatabase(db: IDBPDatabase): Promise<void> {
+  if (typeof indexedDB.databases === 'function') {
+    const existing = await indexedDB.databases()
+    if (!existing.some((info) => info.name === LEGACY_DB_NAME)) return
+  }
+
+  const legacy = await openDB(LEGACY_DB_NAME)
+  try {
+    // Without indexedDB.databases() the open above creates an empty database;
+    // no stores means there was nothing to migrate.
+    if (legacy.objectStoreNames.length === 0) return
+
+    // Never overwrite: a vault in the new database means the copy already
+    // happened and only the legacy delete was interrupted.
+    const hasVault = (await db.get('meta', VAULT_META_KEY)) !== undefined
+    if (!hasVault) {
+      for (const store of ['meta', 'entries', 'goals', 'settings'] as const) {
+        if (!legacy.objectStoreNames.contains(store)) continue
+        const [keys, values] = await Promise.all([legacy.getAllKeys(store), legacy.getAll(store)])
+        const tx = db.transaction(store, 'readwrite')
+        await Promise.all([
+          ...values.map((value, i) =>
+            // meta uses out-of-line keys; the other stores have keyPath 'id'.
+            store === 'meta' ? tx.store.put(value, keys[i]) : tx.store.put(value)
+          ),
+          tx.done,
+        ])
+      }
+    }
+  } finally {
+    legacy.close()
+  }
+  // Not awaited: deletion blocks while another tab (running pre-rename code)
+  // still holds the legacy database open. The hasVault guard above makes a
+  // retried delete on the next open safe.
+  void deleteDB(LEGACY_DB_NAME)
+}
+
 function getDB() {
   if (!dbPromise) {
-    dbPromise = openDB(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        // Unencrypted meta store
-        if (!db.objectStoreNames.contains('meta')) {
-          db.createObjectStore('meta')
-        }
-        // Encrypted stores
-        if (!db.objectStoreNames.contains('entries')) {
-          const entries = db.createObjectStore('entries', { keyPath: 'id' })
-          entries.createIndex('updatedAt', 'updatedAt')
-        }
-        if (!db.objectStoreNames.contains('goals')) {
-          db.createObjectStore('goals', { keyPath: 'id' })
-        }
-        if (!db.objectStoreNames.contains('settings')) {
-          db.createObjectStore('settings', { keyPath: 'id' })
-        }
-      },
-    })
+    dbPromise = (async () => {
+      const db = await openDB(DB_NAME, DB_VERSION, {
+        upgrade(db) {
+          // Unencrypted meta store
+          if (!db.objectStoreNames.contains('meta')) {
+            db.createObjectStore('meta')
+          }
+          // Encrypted stores
+          if (!db.objectStoreNames.contains('entries')) {
+            const entries = db.createObjectStore('entries', { keyPath: 'id' })
+            entries.createIndex('updatedAt', 'updatedAt')
+          }
+          if (!db.objectStoreNames.contains('goals')) {
+            db.createObjectStore('goals', { keyPath: 'id' })
+          }
+          if (!db.objectStoreNames.contains('settings')) {
+            db.createObjectStore('settings', { keyPath: 'id' })
+          }
+        },
+      })
+      try {
+        await migrateLegacyDatabase(db)
+      } catch {
+        // A failed migration must not brick the app. The legacy database is
+        // untouched on failure, so the next launch retries.
+      }
+      return db
+    })()
   }
   return dbPromise
 }
@@ -201,11 +254,14 @@ export async function saveAuthPrefs(updates: Partial<AuthPrefs>): Promise<AuthPr
 
 export async function clearAllData(): Promise<void> {
   dbPromise = null
-  const req = indexedDB.deleteDatabase(DB_NAME)
-  await new Promise<void>((resolve, reject) => {
-    req.onsuccess = () => resolve()
-    req.onerror = () => reject(req.error)
-  })
+  // Drop the legacy pre-rename database too, in case migration never ran.
+  for (const name of [DB_NAME, LEGACY_DB_NAME]) {
+    const req = indexedDB.deleteDatabase(name)
+    await new Promise<void>((resolve, reject) => {
+      req.onsuccess = () => resolve()
+      req.onerror = () => reject(req.error)
+    })
+  }
 }
 
 // Session key persistence — used by AuthContext for "stay logged in"

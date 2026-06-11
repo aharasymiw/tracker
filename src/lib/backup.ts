@@ -12,7 +12,11 @@ import { generateSalt, deriveBackupKey, encrypt, decrypt } from '@/lib/crypto'
 // under that vault's own key.
 
 export const BACKUP_VERSION = 1
-const BACKUP_APP = 'trellis'
+const BACKUP_APP = 'lesslately'
+// Backups exported before the Trellis → Less Lately rename — imports must keep
+// accepting them.
+const LEGACY_BACKUP_APP = 'trellis'
+const BackupAppSchema = z.union([z.literal(BACKUP_APP), z.literal(LEGACY_BACKUP_APP)])
 const PBKDF2_ITERATIONS = 600_000
 
 export interface BackupData {
@@ -55,7 +59,7 @@ const BackupPayloadSchema = z.object({
 })
 
 const PlainBackupSchema = z.object({
-  app: z.literal(BACKUP_APP),
+  app: BackupAppSchema,
   version: z.number(),
   exportedAt: z.string(),
   encrypted: z.literal(false).optional(),
@@ -65,7 +69,7 @@ const PlainBackupSchema = z.object({
 })
 
 const EncryptedBackupSchema = z.object({
-  app: z.literal(BACKUP_APP),
+  app: BackupAppSchema,
   version: z.number(),
   exportedAt: z.string(),
   encrypted: z.literal(true),

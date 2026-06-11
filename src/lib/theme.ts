@@ -4,11 +4,11 @@ import type { Theme } from '@/types'
 // source of truth is the encrypted settings record in IndexedDB, but that can't
 // be read until the vault is unlocked — so this cache lets us apply the correct
 // theme before React renders and while the vault is still locked.
-export const THEME_STORAGE_KEY = 'trellis-theme'
+export const THEME_STORAGE_KEY = 'lesslately-theme'
 
 // Dispatched on `window` whenever the stored preference changes in this tab, so
 // the always-mounted theme sync can re-apply without waiting on React state.
-export const THEME_CHANGE_EVENT = 'trellis:theme-change'
+export const THEME_CHANGE_EVENT = 'lesslately:theme-change'
 
 const VALID_THEMES: readonly Theme[] = ['light', 'dark', 'system']
 

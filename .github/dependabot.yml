@@ -1,6 +1,6 @@
 version: 2
 updates:
-  # Trellis ships as static files (Cloudflare Pages) + a browser bundle — there is
+  # Less Lately ships as static files (Cloudflare Pages) + a browser bundle — there is
   # no backend. The build/CLI tooling tree (shadcn → @modelcontextprotocol/sdk,
   # vite, wrangler, babel) never reaches production, so we only want update PRs for
   # dependencies that actually ship to the browser.

@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const mode = process.argv[2] || 'tile'
-const out = process.argv[3] || `/tmp/trellis-icons/render-${mode}.png`
+const out = process.argv[3] || `/tmp/lesslately-icons/render-${mode}.png`
 
 const browser = await chromium.launch()
 const page = await browser.newPage({ viewport: { width: 1100, height: 1100 } })

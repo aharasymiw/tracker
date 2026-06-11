@@ -14,7 +14,7 @@ const PAGE_TITLES: Record<string, string> = {
 export function Header() {
   const location = useLocation()
   const { lock, vaultState } = useAuth()
-  const title = PAGE_TITLES[location.pathname] ?? 'Trellis'
+  const title = PAGE_TITLES[location.pathname] ?? 'Less Lately'
 
   return (
     <header

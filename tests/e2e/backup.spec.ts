@@ -10,7 +10,7 @@ import fs from 'node:fs/promises'
 // so we never have to script the Log entry form.
 
 const SEED = {
-  app: 'trellis',
+  app: 'lesslately',
   version: 1,
   exportedAt: '2026-06-09T00:00:00.000Z',
   encrypted: false,
@@ -54,7 +54,7 @@ const SEED = {
 }
 
 test('export → re-import round-trip with conflict resolution', async ({ page }) => {
-  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'trellis-e2e-'))
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'lesslately-e2e-'))
   const seedPath = path.join(tmpDir, 'seed.json')
   await fs.writeFile(seedPath, JSON.stringify(SEED))
 

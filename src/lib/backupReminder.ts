@@ -2,8 +2,8 @@
 // data. A device-local app means device loss or storage eviction is total data
 // loss, so the app nudges when a full backup hasn't happened in a while.
 
-export const LAST_BACKUP_KEY = 'trellis-last-backup-at'
-export const NUDGE_SNOOZE_KEY = 'trellis-backup-nudge-snoozed-until'
+export const LAST_BACKUP_KEY = 'lesslately-last-backup-at'
+export const NUDGE_SNOOZE_KEY = 'lesslately-backup-nudge-snoozed-until'
 
 export const NUDGE_AFTER_DAYS = 14
 export const SNOOZE_DAYS = 7

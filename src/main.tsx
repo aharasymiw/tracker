@@ -6,6 +6,11 @@ import '@fontsource-variable/geist'
 import './index.css'
 import App from './App.tsx'
 import { applyTheme, getStoredTheme } from '@/lib/theme'
+import { migrateLegacyLocalStorage } from '@/lib/migrateLegacyStorage'
+
+// Move any pre-rename localStorage values to their new keys before anything
+// reads them — the theme apply below is the earliest reader.
+migrateLegacyLocalStorage()
 
 // Apply the stored theme before React renders to avoid a flash. The synchronous
 // localStorage cache stands in for the encrypted preference, which can't be read

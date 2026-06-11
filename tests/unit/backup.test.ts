@@ -57,6 +57,17 @@ describe('JSON backup round-trip', () => {
     expect(decoded.settings).toEqual(data.settings)
   })
 
+  it('still decodes backups exported under the pre-rename app name', async () => {
+    const data = sample()
+    const legacy = { ...JSON.parse(serializePlainBackup(data)), app: 'trellis' }
+    const file = JSON.stringify(legacy)
+
+    expect(inspectBackupJSON(file).encrypted).toBe(false)
+    const decoded = await decodeBackupJSON(file)
+    expect(decoded.entries[0]).toEqual(data.entries[0])
+    expect(decoded.settings).toEqual(data.settings)
+  })
+
   it('encrypts and decrypts with the correct password', async () => {
     const data = sample()
     const file = await serializeEncryptedBackup(data, 'correct horse')
