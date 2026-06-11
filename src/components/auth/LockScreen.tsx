@@ -23,7 +23,7 @@ export function LockScreen() {
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 p-6">
       <div className="w-full max-w-sm space-y-6">
         <div className="space-y-1 text-center">
-          <h1 className="font-serif text-3xl">Trellis</h1>
+          <h1 className="font-serif text-3xl">Less Lately</h1>
           <p className="text-sm text-muted-foreground">Enter your password to continue</p>
         </div>
 

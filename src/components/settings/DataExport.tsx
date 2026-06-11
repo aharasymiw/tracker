@@ -76,7 +76,7 @@ export function DataExport() {
       const content = encrypt
         ? await serializeEncryptedBackup(data, pw)
         : serializePlainBackup(data)
-      download(`trellis-backup-${today()}.json`, content, 'application/json')
+      download(`lesslately-backup-${today()}.json`, content, 'application/json')
       // Only full JSON backups count for the reminder — CSV omits goals/settings.
       recordBackupCompleted()
       setLastBackupAt(getLastBackupAt())
@@ -87,7 +87,7 @@ export function DataExport() {
   }
 
   const handleExportCsv = () => {
-    download(`trellis-entries-${today()}.csv`, serializeEntriesCSV(entries), 'text/csv')
+    download(`lesslately-entries-${today()}.csv`, serializeEntriesCSV(entries), 'text/csv')
     setCsvOpen(false)
   }
 

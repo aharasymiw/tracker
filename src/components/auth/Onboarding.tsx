@@ -116,7 +116,7 @@ export function Onboarding() {
           }}
         />
         <div className="space-y-2">
-          <h1 className="font-serif text-4xl">Trellis</h1>
+          <h1 className="font-serif text-4xl">Less Lately</h1>
           <p className="text-muted-foreground">Track mindfully. Understand your patterns.</p>
         </div>
         <div className="max-w-xs rounded-xl border bg-card p-4 text-sm text-muted-foreground">

@@ -154,9 +154,9 @@ export default function SettingsPage() {
       {/* About */}
       <section className="rounded-xl border bg-card p-4 space-y-2">
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">About</p>
-        <p className="text-sm font-serif">Trellis</p>
+        <p className="text-sm font-serif">Less Lately</p>
         <p className="text-xs text-muted-foreground">
-          Your data is encrypted with AES-256-GCM and never leaves your device. Trellis has no
+          Your data is encrypted with AES-256-GCM and never leaves your device. Less Lately has no
           server, no accounts, and no analytics.
         </p>
       </section>

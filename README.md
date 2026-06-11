@@ -1,6 +1,6 @@
-# Trellis
+# Less Lately
 
-A local-first, encrypted cannabis consumption tracker, built to help you understand your patterns and cut back deliberately. Live at [trellis-2d9.pages.dev](https://trellis-2d9.pages.dev/) (moving to `app.lesslater.com`).
+A local-first, encrypted app for tracking cannabis use, built to help you understand your patterns and cut back deliberately. Deployed on Cloudflare Pages, moving to `app.lesslately.com`.
 
 ## Privacy model
 

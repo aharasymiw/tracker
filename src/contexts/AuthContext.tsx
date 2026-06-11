@@ -23,8 +23,12 @@ import {
 } from '@/lib/db'
 import { requestPersistentStorage } from '@/lib/storage'
 
-const SESSION_SENTINEL = 'trellis-session-ok'
-const STAY_LOGGED_IN_STORAGE_KEY = 'trellis-stay-logged-in'
+const SESSION_SENTINEL = 'lesslately-session-ok'
+// Vaults created before the Trellis → Less Lately rename carry a verification
+// tag encrypted from the old sentinel. The tag is only written at vault
+// creation (or when missing), so the old plaintext must stay accepted forever.
+const LEGACY_SESSION_SENTINEL = 'trellis-session-ok'
+export const STAY_LOGGED_IN_STORAGE_KEY = 'lesslately-stay-logged-in'
 const DEFAULT_AUTH_PREFS: AuthPrefs = {
   stayLoggedIn: false,
 }
@@ -32,7 +36,7 @@ const DEFAULT_AUTH_PREFS: AuthPrefs = {
 // Same-origin channel that propagates an explicit lock to every open tab.
 // Auto-lock stays per-tab: an idle tab locking itself must not yank the vault
 // out from under a tab the user is actively working in.
-const LOCK_CHANNEL_NAME = 'trellis-lock'
+const LOCK_CHANNEL_NAME = 'lesslately-lock'
 
 // User-input events that count as "activity" for the idle timer. Passive and
 // debounced so the listeners cost nothing on busy pages.
@@ -305,7 +309,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ) {
         try {
           const plaintext = await decrypt(meta.verifyCiphertext, meta.verifyIV, sessionKey)
-          if (plaintext === SESSION_SENTINEL) {
+          if (plaintext === SESSION_SENTINEL || plaintext === LEGACY_SESSION_SENTINEL) {
             masterKeyRef.current = sessionKey
             setMasterKeyVersion((value) => value + 1)
             setVaultState('unlocked')

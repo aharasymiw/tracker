@@ -59,7 +59,7 @@ describe('generateSalt', () => {
 describe('encrypt / decrypt', () => {
   it('round-trips data', async () => {
     const key = await generateMasterKey()
-    const plaintext = 'Hello, Trellis!'
+    const plaintext = 'Hello, Less Lately!'
     const { iv, ciphertext } = await encrypt(plaintext, key)
     const decrypted = await decrypt(ciphertext, iv, key)
     expect(decrypted).toBe(plaintext)

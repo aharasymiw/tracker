@@ -66,6 +66,9 @@ describe('db - vault meta', () => {
     expect(retrieved).toEqual(meta)
   })
 
+  // The legacy-meta tests below seed 'tracker-vault' — the database name before
+  // the Less Lately rename — because those meta shapes only ever existed there.
+  // Reading them back therefore also exercises the database-name migration.
   it('migrates legacy vault meta on read and persists the upgraded shape', async () => {
     const { getVaultMeta } = await import('@/lib/db')
 
@@ -285,6 +288,98 @@ describe('db - app settings schema', () => {
       autoLockMinutes: 10,
     })
     expect('stayLoggedIn' in parsed).toBe(false)
+  })
+})
+
+describe('db - legacy database migration', () => {
+  const validMeta = (): VaultMeta => ({
+    version: 3,
+    keySlots: [
+      {
+        id: 'password-slot',
+        type: 'password',
+        passwordSalt: 'aabbccdd'.repeat(8),
+        encryptedMasterKey: 'base64data==',
+        masterKeyIV: 'iv==',
+      },
+    ],
+    verifyIV: 'verifyiv==',
+    verifyCiphertext: 'verifyciphertext==',
+    createdAt: new Date().toISOString(),
+  })
+
+  const openRaw = (name: string) =>
+    new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open(name, 1)
+      request.onupgradeneeded = () => {
+        const db = request.result
+        db.createObjectStore('meta')
+        db.createObjectStore('entries', { keyPath: 'id' }).createIndex('updatedAt', 'updatedAt')
+        db.createObjectStore('goals', { keyPath: 'id' })
+        db.createObjectStore('settings', { keyPath: 'id' })
+      }
+      request.onerror = () => reject(request.error)
+      request.onsuccess = () => resolve(request.result)
+    })
+
+  const putRaw = (db: IDBDatabase, store: string, value: unknown, key?: string) =>
+    new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(store, 'readwrite')
+      tx.objectStore(store).put(value, key)
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+    })
+
+  const legacyDatabaseExists = async () => {
+    const dbs = await indexedDB.databases()
+    return dbs.some((info) => info.name === 'tracker-vault')
+  }
+
+  it('copies the pre-rename database into the new one and deletes it', async () => {
+    const meta = validMeta()
+    const record: EncryptedRecord = {
+      id: 'entry-1',
+      iv: 'iv==',
+      ciphertext: 'data==',
+      updatedAt: new Date().toISOString(),
+    }
+
+    const legacy = await openRaw('tracker-vault')
+    await putRaw(legacy, 'meta', meta, 'vault')
+    await putRaw(legacy, 'entries', record)
+    legacy.close()
+
+    const { getVaultMeta, getAllEncrypted } = await import('@/lib/db')
+    expect(await getVaultMeta()).toEqual(meta)
+    expect(await getAllEncrypted('entries')).toEqual([record])
+
+    // Deletion is fire-and-forget, so give it a moment to land.
+    for (let i = 0; i < 50 && (await legacyDatabaseExists()); i++) {
+      await new Promise((resolve) => setTimeout(resolve, 10))
+    }
+    expect(await legacyDatabaseExists()).toBe(false)
+  })
+
+  it('never overwrites an existing vault in the new database', async () => {
+    const legacyMeta = { ...validMeta(), createdAt: '2025-01-01T00:00:00.000Z' }
+    const currentMeta = validMeta()
+
+    const legacy = await openRaw('tracker-vault')
+    await putRaw(legacy, 'meta', legacyMeta, 'vault')
+    legacy.close()
+
+    const current = await openRaw('lesslately-vault')
+    await putRaw(current, 'meta', currentMeta, 'vault')
+    current.close()
+
+    const { getVaultMeta } = await import('@/lib/db')
+    expect(await getVaultMeta()).toEqual(currentMeta)
+  })
+
+  it('is a no-op for a fresh install', async () => {
+    const { getVaultMeta } = await import('@/lib/db')
+    expect(await getVaultMeta()).toBeUndefined()
+    expect(await legacyDatabaseExists()).toBe(false)
   })
 })
 
